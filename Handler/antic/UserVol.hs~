@@ -1,0 +1,632 @@
+{-# LANGUAGE ConstraintKinds #-}
+module Handler.UserVol where
+
+import Import as I
+
+import Data.Time.Clock (UTCTime(..), getCurrentTime, secondsToDiffTime) -- , UTCTime
+import Data.Time.Calendar (Day(..), addDays) -- , diffDays
+import Data.Maybe as MB
+import qualified Util.UtilForms as UF
+-- import Util.UtilQQHereDoc
+-- import Database.Persist.GenericSql(rawSql)
+import Database.Persist.Query.GenericSql (SqlPersist)
+import qualified Data.Map as M
+import Control.Monad.Logger (MonadLogger)
+import Control.Monad.Trans.Resource (MonadResourceBase)
+import Database.Esqueleto as Esql
+import Control.Monad (when)
+import Text.Julius (juliusFile)
+import Text.Hamlet (hamletFile)
+import qualified Handler.UtilHandlers as UH
+import Yesod.Form.Types (FormMessage(..))
+{-
+import "hsp" HSP.XML.PCDATA (escape)
+import Data.Text.Lazy.Builder (toLazyText)
+-}
+
+data UserVol = UserVol {userVolIdUsuari::UserId, userVolPosted::UTCTime,
+                        userVolOrigenPaís::Text,
+                        -- userVolOrigenPoblació::Text,
+                        userVolOrigenAeroport::Text,
+                        userVolDestíPaís::Text,
+                        -- userVolDestíPoblació::Text,
+                        userVolDestíAeroport::Text,
+                        userVolDataAnada::Day, userVolNumVolAnada::Text,
+                        userVolDataTornada::Maybe Day, userVolNumVolTornada::Maybe Text,
+                        userVolNombreDeSeients::Int,
+                        userVolLíniaAèria::Text,
+                        userVolNumReserva::Text,
+                        userVolWebOnVaFerLaReserva::Text,
+                        userVolPreu::Double, userVolMoneda::Moneda,
+                        -- userVolÉsPreuNegociable::Bool,
+                        userVolComentaris::Maybe Textarea,
+                        userVolEstat::EstatArt}
+
+userArtFromUserVol :: UserVol -> ArtVolId -> UserArt                        
+userArtFromUserVol UserVol {..} idArtVol = UserArt { userArtIdUsuari = userVolIdUsuari,
+                                      userArtPosted = userVolPosted,
+                                      userArtData = userVolDataAnada,
+                                      userArtPreu = userVolPreu,
+                                      userArtMoneda = userVolMoneda,
+                                      -- userArtÉsPreuNegociable = userVolÉsPreuNegociable,
+                                      userArtComentaris = userVolComentaris,        
+                                      userArtTipusArt = TipArtVol,
+                                      userArtIdArtVol = Just idArtVol,
+                                      userArtIdArtEnt = Nothing,
+                                      userArtEstat = userVolEstat        }
+
+artVolFromUserVol :: UserVol -> ArtVol
+artVolFromUserVol UserVol {..} = ArtVol { artVolOrigenPaís = userVolOrigenPaís,
+                                    -- artVolOrigenPoblació = userVolOrigenPoblació,
+                                    artVolOrigenPoblació = UF.nomDest userVolOrigenAeroport,
+                                    artVolOrigenAeroport = userVolOrigenAeroport,
+                                    artVolDestíPaís = userVolDestíPaís,
+                                    -- artVolDestíPoblació = userVolDestíPoblació,
+                                    artVolDestíPoblació = UF.nomDest userVolDestíAeroport,
+                                    artVolDestíAeroport = userVolDestíAeroport,
+                                    artVolNumVol = userVolNumVolAnada,
+                                    artVolDataTornada = userVolDataTornada,
+                                    artVolNumVolTornada = userVolNumVolTornada,
+                                    artVolLíniaAèria = userVolLíniaAèria,
+                                    artVolNumReserva = userVolNumReserva,
+                                    artVolWebOnVaFerLaReserva = userVolWebOnVaFerLaReserva,
+                                    artVolNombreDeSeients = userVolNombreDeSeients}
+
+userVolFromUserArt :: UserArt -> ArtVol -> UserVol
+userVolFromUserArt UserArt {..} ArtVol {..} = UserVol {userVolIdUsuari = userArtIdUsuari, userVolPosted = userArtPosted,
+                                                       userVolOrigenPaís = artVolOrigenPaís,
+                                                       -- userVolOrigenPoblació = artVolOrigenPoblació,
+                                                       userVolOrigenAeroport = artVolOrigenAeroport,
+                                                       userVolDestíPaís = artVolDestíPaís,
+                                                       -- userVolDestíPoblació = artVolDestíPoblació,
+                                                       userVolDestíAeroport = artVolDestíAeroport,
+                                                       userVolDataAnada = userArtData, userVolNumVolAnada = artVolNumVol,
+                                                       userVolDataTornada = artVolDataTornada, userVolNumVolTornada = artVolNumVolTornada,
+                                                       userVolPreu = userArtPreu,
+                                                       userVolMoneda = userArtMoneda,
+                                                       -- userVolÉsPreuNegociable = userArtÉsPreuNegociable,
+                                                       userVolComentaris = userArtComentaris,
+                                                       userVolLíniaAèria = artVolLíniaAèria,
+                                                       userVolNumReserva = artVolNumReserva,
+                                                       userVolWebOnVaFerLaReserva = artVolWebOnVaFerLaReserva,        
+                                                       userVolNombreDeSeients = artVolNombreDeSeients,
+                                                       userVolEstat = userArtEstat}
+
+userVolFromUserArtEnts :: (Entity UserArt, Entity ArtVol) -> (UserArtId, UserVol)
+userVolFromUserArtEnts (Entity artId userArt, Entity _ artVol) = (artId, userVolFromUserArt userArt artVol)
+
+
+userVolFormCustom :: App -> [Text] -> UserId -> Maybe UserVol -> Form UserVol
+userVolFormCustom master langs idUsuari mbUserVol extra = do
+        -- <$> aformM (return idUsuari)
+        currentTime <- liftIO getCurrentTime -- <*> aformM (liftIO getCurrentTime)
+        (userVolOrigenPaís_Res, userVolOrigenPaís_View) <- mreq (selectField $ UH.myTextOptionsPairs UF.countries) ((fieldSettingsLabel MsgUserVolOrigenPaís) {fsAttrs = [("onchange","enCanviarPais(this.value,'h3')")]}) (userVolOrigenPaís <$> mbUserVol) >>= (return . fmap UF.vistaAmbEstrella)
+        -- (userVolOrigenPoblació_Res, userVolOrigenPoblació_View) <- mreq textField (fieldSettingsLabel MsgUserVolOrigenPoblació) (userVolOrigenPoblació <$> mbUserVol) >>= (return . fmap UF.vistaAmbEstrella)
+        (userVolOrigenAeroport_Res, userVolOrigenAeroport_View) <- mreq (selectFieldList destinacionsInicialsOrigen) {fieldParse = parseHelper comprovaDest} (fieldSettingsLabel MsgUserVolOrigenAeroport) (userVolOrigenAeroport <$> mbUserVol) >>= (return . fmap UF.vistaAmbEstrella)
+        
+        (userVolDestíPaís_Res, userVolDestíPaís_View) <- mreq (selectField $ UH.myTextOptionsPairs UF.countries) ((fieldSettingsLabel MsgUserVolDestíPaís) {fsAttrs = [("onchange","enCanviarPais(this.value,'h5')")]}) (userVolDestíPaís <$> mbUserVol) >>= (return . fmap UF.vistaAmbEstrella)
+        -- (userVolDestíPoblació_Res, userVolDestíPoblació_View) <- mreq textField (fieldSettingsLabel MsgUserVolDestíPoblació) (userVolDestíPoblació <$> mbUserVol) >>= (return . fmap UF.vistaAmbEstrella)
+        (userVolDestíAeroport_Res, userVolDestíAeroport_View) <- mreq (selectFieldList destinacionsInicialsDestí) {fieldParse = parseHelper comprovaDest} (fieldSettingsLabel MsgUserVolDestíAeroport) (userVolDestíAeroport <$> mbUserVol) >>= (return . fmap UF.vistaAmbEstrella)
+        
+        (userVolDataAnada_Res, userVolDataAnada_View) <- mreq dayField (fieldSettingsLabel MsgUserVolDataAnada) {fsAttrs = [("autocomplete","off")]} (userVolDataAnada <$> mbUserVol) >>= (return . fmap UF.vistaAmbEstrella)
+        (userVolNumVolAnada_Res, userVolNumVolAnada_View) <- mreq textField (fieldSettingsLabel MsgUserVolNumVolAnada) {fsAttrs = [("autocomplete","off")]} (userVolNumVolAnada <$> mbUserVol) >>= (return . fmap UF.vistaAmbEstrella)
+        
+        (userVolDataTornada_Res, userVolDataTornada_View) <- mopt dayField (fieldSettingsLabel MsgUserVolDataTornada) {fsAttrs = [("autocomplete","off")]} (userVolDataTornada <$> mbUserVol)
+        (userVolNumVolTornada_Res, userVolNumVolTornada_View) <- mopt textField (fieldSettingsLabel MsgUserVolNumVolTornada) {fsAttrs = [("autocomplete","off")]} (userVolNumVolTornada <$> mbUserVol)
+        
+        (userVolNombreDeSeients_Res, userVolNombreDeSeients_View) <- mreq positiuField (fieldSettingsLabel MsgUserVolNombreDeSeients) (userVolNombreDeSeients <$> mbUserVol) >>= (return . fmap UF.vistaAmbEstrella)
+        (userVolLíniaAèria_Res, userVolLíniaAèria_View) <- mreq textField (fieldSettingsLabel MsgUserVolLíniaAèria) (userVolLíniaAèria <$> mbUserVol) >>= (return . fmap UF.vistaAmbEstrella)
+        
+        (userVolNumReserva_Res, userVolNumReserva_View) <- mreq textField (fieldSettingsLabel MsgUserVolNumReserva) {fsAttrs = [("autocomplete","off")]} (userVolNumReserva <$> mbUserVol) >>= (return . fmap UF.vistaAmbEstrella)
+        (userVolWebOnVaFerLaReserva_Res, userVolWebOnVaFerLaReserva_View) <- mreq textField (fieldSettingsLabel MsgUserVolWebOnVaFerLaReserva) (userVolWebOnVaFerLaReserva <$> mbUserVol) >>= (return . fmap UF.vistaAmbEstrella)
+        
+        (userArtPreu_Res, userArtPreu_View) <- mreq doubleField (fieldSettingsLabel MsgUserArtPreu) (userVolPreu <$> mbUserVol) >>= (return . fmap UF.vistaAmbEstrella)
+        (userArtMoneda_Res, userArtMoneda_View) <- mreq (selectFieldList UF.monedes) (fieldSettingsLabel MsgUserArtMoneda) (userVolMoneda <$> mbUserVol) >>= (return . fmap UF.vistaAmbEstrella)
+        -- (userVolOrigen_Res, userVolOrigen_View) <- mreq checkBoxField (fieldSettingsLabel MsgUserArtÉsPreuNegociable) (userVolÉsPreuNegociable <$> mbUserVol) >>= (return . fmap UF.vistaAmbEstrella)
+        (userArtComentaris_Res, userArtComentaris_View) <- mopt textareaField (fieldSettingsLabel MsgUserArtComentaris) {fsAttrs = [("rows","4")]} (userVolComentaris <$> mbUserVol)
+        -- <*> aformM (do
+        let userVolEstat_Val = case mbUserVol of
+                     Just userVol -> userVolEstat userVol
+                     Nothing -> EstArt_Exposat
+
+        let userVol_Res = UserVol <$> pure idUsuari <*> pure currentTime <*> 
+                          userVolOrigenPaís_Res <*> userVolOrigenAeroport_Res <*>
+                          userVolDestíPaís_Res <*> userVolDestíAeroport_Res <*>
+                          userVolDataAnada_Res <*>
+                          userVolNumVolAnada_Res <*> userVolDataTornada_Res <*> userVolNumVolTornada_Res <*> 
+                          userVolNombreDeSeients_Res <*> userVolLíniaAèria_Res <*> userVolNumReserva_Res <*> userVolWebOnVaFerLaReserva_Res <*> userArtPreu_Res <*> userArtMoneda_Res <*>
+                          userArtComentaris_Res <*> pure userVolEstat_Val
+                          
+        let wGrups = UH.massRows [(Just MsgLegendOrigen,[userVolOrigenPaís_View, userVolOrigenAeroport_View]),
+                                  (Just MsgLegendDestí,[userVolDestíPaís_View, userVolDestíAeroport_View]),
+                                  (Just MsgLegendAnada, [userVolDataAnada_View, userVolNumVolAnada_View]),
+                                  (Just MsgLegendTornada, [userVolDataTornada_View, userVolNumVolTornada_View]),
+                                  (Just MsgLegendDetalls, [userVolNombreDeSeients_View, userVolLíniaAèria_View, userVolNumReserva_View, userVolWebOnVaFerLaReserva_View,
+                                                           userArtPreu_View, userArtMoneda_View, userArtComentaris_View])
+                                  ]         
+            
+        let widget = do
+                [whamlet|
+        #{extra}
+        ^{wGrups}
+|]
+        return (userVol_Res, widget)        
+                
+  where
+    positiuField = check validateNombreDeSeients intField
+    validateNombreDeSeients n
+            | n < 1 = Left $ renderMessage master langs MsgUserVol_ErrNombreDeSeientsNoPositiu
+            | otherwise = Right n
+            
+    destinacionsInicialsOrigen = case mbUserVol of
+                                Nothing -> []
+                                Just userVol -> case UF.destinacionsDelPaís $ userVolOrigenPaís userVol of
+                                                     Just d -> d
+                                                     Nothing -> []
+                                
+    destinacionsInicialsDestí = case mbUserVol of
+                                Nothing -> []
+                                Just userVol -> case UF.destinacionsDelPaís $ userVolDestíPaís userVol of
+                                                     Just d -> d
+                                                     Nothing -> []
+                                                     
+    -- comprovaDest :: (RenderMessage master FormMessage) => (Text -> Either FormMessage a)
+    comprovaDest "none" = Left MsgValueRequired
+    comprovaDest txt = Right txt
+
+            
+artVolUpd :: (PersistQuery SqlPersist m, MonadLogger m, MonadResourceBase m) => ArtVolId -> UserVol -> SqlPersist m ()
+artVolUpd artVolId UserVol {..} = I.update artVolId [ArtVolOrigenPaís I.=. userVolOrigenPaís,
+                                         ArtVolOrigenPoblació I.=. UF.nomDest userVolOrigenAeroport,
+                                         ArtVolOrigenAeroport I.=. userVolOrigenAeroport,
+                                         ArtVolDestíPaís I.=. userVolDestíPaís,
+                                         ArtVolDestíPoblació I.=. UF.nomDest userVolDestíAeroport,
+                                         ArtVolDestíAeroport I.=. userVolDestíAeroport,
+                                         ArtVolNumVol I.=. userVolNumVolAnada,
+                                         ArtVolDataTornada I.=. userVolDataTornada,
+                                         ArtVolNumVolTornada I.=. userVolNumVolTornada,
+                                         ArtVolNombreDeSeients I.=. userVolNombreDeSeients,
+                                         ArtVolLíniaAèria I.=. userVolLíniaAèria,
+                                         ArtVolNumReserva I.=. userVolNumReserva,
+                                         ArtVolWebOnVaFerLaReserva I.=. userVolWebOnVaFerLaReserva]
+
+userArtUpd :: (PersistQuery SqlPersist m, MonadLogger m, MonadResourceBase m) => UserArtId -> UserVol -> SqlPersist m ()
+userArtUpd userArtId UserVol {..} = I.update userArtId [UserArtData I.=. userVolDataAnada,
+                                                        UserArtPreu I.=. userVolPreu,
+                                                        UserArtMoneda I.=. userVolMoneda,
+                                                        -- UserArtÉsPreuNegociable I.=. userVolÉsPreuNegociable,
+                                                        UserArtComentaris I.=. userVolComentaris]
+
+userArtUpdEstat :: (PersistQuery SqlPersist m, MonadLogger m, MonadResourceBase m) => UserArtId -> EstatArt -> SqlPersist m ()                                                        
+userArtUpdEstat userArtId estatArt = I.update userArtId [UserArtEstat I.=. estatArt]
+
+widgetJSDatePick :: Maybe Text -> GWidget sub App ()
+widgetJSDatePick mbLang = do
+        addStylesheetAttrs (StaticR jsdatepick_calendar_jsDatePick_ltr_min_css) [("media","all")]
+        toWidgetHead [hamlet|
+<script type="text/javascript" src="@{StaticR jsdatepick_calendar_jsDatePick_min_1_3_js}">
+|]
+        toWidgetHead $(juliusFile "templates/jsdatepick-idiomes.julius")
+        toWidgetHead [hamlet|
+<script type="text/javascript" src="@{StaticR js_jsdatepick_afegir_vol_js}">
+|]
+        return ()
+
+getUserAddFlightR :: Handler RepHtml
+getUserAddFlightR = do
+    req <- getRequest
+    master <- getYesod
+    mbLang <- UF.obtenirIdioma
+    langs <- languages
+    muser <- maybeAuth
+    let Entity userId user = fromJust muser  -- isAuthorized
+    mbUserInfo <- case muser of
+                         Nothing -> return Nothing
+                         Just (Entity userId _) -> do
+                                 mbEnt <- runDB $ getBy (UniqueUserInfoUserId userId)
+                                 return $ fmap entityVal mbEnt
+
+    if MB.isJust muser && MB.isNothing mbUserInfo
+         then do
+                setMessageI MsgErrRequeixPerfilUsuari
+                redirect UserInfoR
+         else do
+                (tabulatedFormWidget, enctype) <- generateFormPost $ userVolFormCustom master langs userId Nothing
+                mydefaultLayout emptyWidget $ do
+                        setTitleI MsgUserAddFlightTitle
+                        widgetJSDatePick mbLang
+                        -- toWidgetHead $(juliusFile "templates/uservol-form.julius")
+                        $(widgetFile "tabulated-form-one-col")
+
+postUserAddFlightR :: Handler RepHtml
+postUserAddFlightR = do
+    muser <- maybeAuth
+    master <- getYesod
+    mbLang <- UF.obtenirIdioma
+    langs <- languages
+    diaDAvui <- liftIO $ UF.today ()
+    let Entity userId _user = fromJust muser  -- isAuthorized
+    ((res, tabulatedFormWidget), enctype) <- runFormPost $ userVolFormCustom master langs userId Nothing 
+    case res of
+        FormSuccess userVol -> do
+            case comprovaVol diaDAvui userVol of
+               Left errmsg -> do  
+                        setMessageI errmsg
+                        mydefaultLayout emptyWidget $ widgetCorregir mbLang tabulatedFormWidget enctype
+               Right _ -> do        
+                        runDB $ do
+                                let artVol = artVolFromUserVol userVol
+                                idArtVol <- insert artVol
+                                let userArt = userArtFromUserVol userVol idArtVol
+                                _ <- insert userArt
+                                return ()
+                        setMessageI MsgUserVol_HasBeenAdded
+                        redirect UserAddFlightR
+
+        _ -> do
+                setMessageI MsgPleaseCorrect
+                mydefaultLayout emptyWidget $ widgetCorregir mbLang tabulatedFormWidget enctype
+  where
+          widgetCorregir mbLang tabulatedFormWidget enctype = do
+                  setTitleI MsgPleaseCorrect
+                  widgetJSDatePick mbLang
+                  -- toWidgetHead $(juliusFile "templates/uservol-form.julius")
+                  $(widgetFile "tabulated-form-one-col")
+
+comprovaVol :: Day -> UserVol -> Either AppMessage UserVol
+comprovaVol diaDAvui userVol =
+            case () of
+               _ | userVolOrigenAeroport userVol == userVolDestíAeroport userVol -> Left MsgUserVol_ErrOrigenIgualADEstí
+
+                 | userVolDataAnada userVol < diaControl -> Left MsgUserVol_ErrDataAnadaÉsEnElPassat
+
+                 | isJust (userVolDataTornada userVol) && (fromJust $ userVolDataTornada userVol) < userVolDataAnada userVol ->
+                        Left MsgUserVol_ErrDataAnadaÉsAnteriorADataTornada
+
+                 | isJust (userVolDataTornada userVol) && MB.isNothing (userVolNumVolTornada userVol)-> 
+                        Left MsgUserVol_ErrMancaNumVolTornada
+
+                 | otherwise -> Right userVol
+    where
+      diaControl = addDays (-1) diaDAvui      
+
+getUserEditFlightR :: UserArtId -> Handler RepHtml
+getUserEditFlightR artId = do
+    req <- getRequest
+    master <- getYesod
+    mbLang <- UF.obtenirIdioma
+    langs <- languages
+    muser <- maybeAuth
+    let Entity userId user = fromJust muser  -- isAuthorized
+    mbUserArt <- runDB $ get artId
+    case mbUserArt of
+       Nothing -> notFound
+       Just art
+                | userArtTipusArt art /= TipArtVol -> notFound
+                | userArtIdUsuari art /= userId -> notFound
+                | not $ isJust $ userArtIdArtVol art -> notFound
+                | otherwise -> do
+                       let idArtVol = fromJust $ userArtIdArtVol art
+                       mbArtVol <- runDB $ get idArtVol
+                       case mbArtVol of
+                         Nothing -> notFound
+                         Just artVol -> do
+                           let vol = userVolFromUserArt art artVol      
+                           (tabulatedFormWidget, enctype) <- generateFormPost $ userVolFormCustom master langs userId (Just vol) 
+                           mydefaultLayout emptyWidget $ do
+                             setTitleI MsgUserEditFlightTitle
+                             widgetJSDatePick mbLang
+                             -- toWidgetHead $(juliusFile "templates/uservol-form.julius")
+                             $(widgetFile "tabulated-form-with-delete-art")
+
+postUserEditFlightR :: UserArtId -> Handler RepHtml
+postUserEditFlightR artId = do
+    req <- getRequest
+    master <- getYesod
+    mbLang <- UF.obtenirIdioma
+    langs <- languages   -- param. per al userVolForm
+    diaDAvui <- liftIO $ UF.today ()
+    muser <- maybeAuth
+    let Entity userId user = fromJust muser  -- isAuthorized
+    mbUserArt <- runDB $ get artId
+    case mbUserArt of
+       Nothing -> notFound
+       Just art
+                | userArtTipusArt art /= TipArtVol -> notFound
+                | userArtIdUsuari art /= userId -> notFound
+                | not $ isJust $ userArtIdArtVol art -> notFound
+                | otherwise -> do
+                        let idArtVol = fromJust $ userArtIdArtVol art
+                        mbDelete <- runInputPost $ iopt textField "delete"
+                        case mbDelete of
+                           Just _ -> do
+                                runDB $ userArtUpdEstat artId EstArt_Anuŀlat
+                                setMessageI MsgUserVol_HasBeenDeleted
+                                redirect $ UserVisitOwnFlightR artId
+                                
+                           _ -> do
+                              ((res, tabulatedFormWidget), enctype) <- runFormPost $ userVolFormCustom master langs userId Nothing 
+                              case res of
+                                FormSuccess userVol -> do
+                                    case comprovaVol diaDAvui userVol of
+                                        Left errmsg -> do
+                                                setMessageI errmsg
+                                                mydefaultLayout emptyWidget $ widgetCorregir mbLang tabulatedFormWidget enctype
+                                        Right _ -> do
+                                                _ <- runDB $ userArtUpd artId userVol
+                                                _ <- runDB $ artVolUpd idArtVol userVol
+                                                setMessageI MsgUserVol_HasBeenUpdated
+                                                redirect $ UserEditFlightR artId
+
+                                _ -> do
+                                        setMessageI MsgPleaseCorrect
+                                        mydefaultLayout emptyWidget $ widgetCorregir mbLang tabulatedFormWidget enctype
+  where
+          widgetCorregir mbLang tabulatedFormWidget enctype = do
+                  setTitleI MsgPleaseCorrect
+                  widgetJSDatePick mbLang
+                  -- toWidgetHead $(juliusFile "templates/uservol-form.julius")
+                  $(widgetFile "tabulated-form-with-delete-art")
+
+                  
+getElsMeusVolsR :: Int -> Handler RepHtml
+getElsMeusVolsR pag = do
+    req <- getRequest
+    master <- getYesod
+    muser <- maybeAuth
+    let Entity userId user = fromJust muser  -- isAuthorized
+
+    let navPrimer = ElsMeusVolsR 0
+        navSegüent = ElsMeusVolsR (pag +1)
+        mbNavAnterior = if pag > 0
+                         then Just $ ElsMeusVolsR (pag -1)
+                         else Nothing
+        myOffset = pag * UF.volsEntradesPerPàgina
+    
+    result <- runDB $ select $ from $ \(ua `InnerJoin` av) -> do
+                on ((ua ^. UserArtIdArtVol) Esql.==. just (av ^. ArtVolId))
+                where_ (ua ^. UserArtIdUsuari Esql.==. val userId)
+                -- where_ (ua ^. UserArtEstat Esql.==. val EstArt_Exposat)
+                orderBy [desc (ua ^. UserArtPosted)]
+                offset $ fromIntegral myOffset
+                limit $ fromIntegral UF.volsEntradesPerPàgina
+                return (ua, av)
+                
+    let vols = map userVolFromUserArtEnts result           
+                
+                
+    -- vols <- runDB $ selectList [UserVolIdUsuari ==. userId] [Desc UserVolPosted, OffsetBy offset, LimitTo UF.volsEntradesPerPàgina]
+
+    mbUserInfo <- case muser of
+                         Nothing -> return Nothing
+                         Just (Entity userId _) -> do
+                                 mbEnt <- runDB $ getBy (UniqueUserInfoUserId userId)
+                                 return $ fmap entityVal mbEnt
+
+    if MB.isJust muser && MB.isNothing mbUserInfo
+         then do
+                setMessageI MsgErrRequeixPerfilUsuari
+                redirect UserInfoR
+         else do
+                mbLang <- UF.obtenirIdioma
+                mbCurrentRoute <- getCurrentRoute
+                routeToMaster <- getRouteToMaster
+                {-
+                case mbCurrentRoute of
+                     Nothing -> return ()
+                     Just cr -> setSession "CurrRoute" $ serialitza $
+                     -}
+
+                let ésModificable = True
+                mydefaultLayout emptyWidget $ do
+                        setTitleI MsgUserListMyFlightsTitle
+                        $(widgetFile "uservol-llistar-meus")
+                        
+getTotsElsVolsR :: Int -> Handler RepHtml
+getTotsElsVolsR pag = do
+    -- req <- getRequest
+    -- master <- getYesod
+  if pag < 0
+    then notFound
+    else do
+      muser <- maybeAuth
+      diaDAvui <- liftIO $ UF.today ()
+      let navPrimer = TotsElsVolsR 0
+          navSegüent = TotsElsVolsR (pag +1)
+          mbNavAnterior = if pag > 0
+                         then Just $ TotsElsVolsR (pag -1)
+                         else Nothing
+          myOffset = pag * UF.volsEntradesPerPàgina
+    
+      {-
+      let avuiFa6mesos = addDays (-180) diaDAvui
+          utctAvuiFa6mesos = UTCTime avuiFa6mesos $ secondsToDiffTime 0
+          filtresDeSelect = [UserVolPosted >=. utctAvuiFa6mesos] ++
+                    case muser of
+                       Nothing -> []
+                       Just (Entity userId _) -> [UserVolIdUsuari !=. userId]
+                       -}
+      let títol = case muser of
+                       Nothing -> MsgUserListAllFlightsTitle
+                       Just _ -> MsgUserListOthersFlightsTitle
+                       
+      mbUserInfo <- case muser of
+                         Nothing -> return Nothing
+                         Just (Entity userId _) -> do
+                                 mbEnt <- runDB $ getBy (UniqueUserInfoUserId userId)
+                                 return $ fmap entityVal mbEnt
+
+      if MB.isJust muser && MB.isNothing mbUserInfo
+         then do
+                 setMessageI MsgErrRequeixPerfilUsuari
+                 redirect UserInfoR
+         else do
+                       
+                mbLang <- UF.obtenirIdioma
+                
+                -- vols <- runDB $ selectList filtresDeSelect [Desc UserVolPosted, OffsetBy offset, LimitTo UF.volsEntradesPerPàgina]
+                result <- runDB $ select $ from $ \(av `InnerJoin` ua `InnerJoin` usr) -> do
+                                on ((ua ^. UserArtIdUsuari) Esql.==. (usr ^. UserId))
+                                on ((ua ^. UserArtIdArtVol) Esql.==. just (av ^. ArtVolId))
+                                where_ ((usr ^. UserVeto) Esql.==. val False)
+                                where_ ((ua ^. UserArtEstat) Esql.==. val EstArt_Exposat)
+                                where_ (ua ^. UserArtData Esql.>=. val diaDAvui)
+                                when (isJust muser) $ where_ (ua ^. UserArtIdUsuari Esql.!=. val (entityKey $ fromJust muser))
+                                orderBy [desc (ua ^. UserArtPosted)]
+                                offset $ fromIntegral myOffset
+                                limit $ fromIntegral UF.volsEntradesPerPàgina
+                                return (usr, ua, av)
+
+                let result2 = map (\(_,a,b) -> (a,b)) (result::[(Entity User, Entity UserArt, Entity ArtVol)])
+                    
+                let vols = map userVolFromUserArtEnts result2
+                    
+                mbCurrentRoute <- getCurrentRoute
+                routeToMaster <- getRouteToMaster
+
+                let ésModificable = False
+                volsRecents <- obtenirVolsRecents
+                
+                mydefaultLayout (widgetVolsRecents muser mbLang volsRecents)
+                                   (widgetTotsElsVols muser títol mbLang ésModificable navPrimer navSegüent mbNavAnterior vols)
+                                
+                {-    
+                defaultLayout $ do
+                        setTitleI títol
+                        $(widgetFile "uservol-llistar")
+                        -}
+
+getUserVisitFlightR :: UserArtId -> Handler RepHtml
+getUserVisitFlightR artId = do
+        
+    muser <- maybeAuth
+    mbDG <- runDB llegirGlobals
+    let dadesGlobals = fromJust mbDG
+    
+    mbUserInfo <- case muser of
+                         Nothing -> return Nothing
+                         Just (Entity userId _) -> do
+                                 mbEnt <- runDB $ getBy (UniqueUserInfoUserId userId)
+                                 return $ fmap entityVal mbEnt
+                                 
+    mbLang <- UF.obtenirIdioma
+                         
+    mbUserArt <- runDB $ get artId
+    case mbUserArt of
+       Nothing -> notFound
+       Just art
+                | userArtTipusArt art /= TipArtVol -> notFound
+                | not $ isJust $ userArtIdArtVol art -> notFound
+                | otherwise -> do
+                       let idArtVol = fromJust $ userArtIdArtVol art
+                       mbArtVol <- runDB $ get idArtVol
+                       case mbArtVol of
+                         Nothing -> notFound
+                         Just artVol -> do
+                           let vol = userVolFromUserArt art artVol
+                           mydefaultLayout emptyWidget $ do
+                               setTitleI MsgUserVisitFlightTitle
+                               $(widgetFile "uservol-visitar-titol")
+                               $(widgetFile "uservol-visitar-detalls-venda")
+                               $(widgetFile "boto-enviar-msg-interes")
+
+getUserVisitOwnFlightR :: UserArtId -> Handler RepHtml
+getUserVisitOwnFlightR artId = do
+
+    muser <- maybeAuth
+    let Entity userId user = fromJust muser  -- isAuthorized
+    mbUserInfo <- case muser of
+                         Nothing -> return Nothing
+                         Just (Entity userId _) -> do
+                                 mbEnt <- runDB $ getBy (UniqueUserInfoUserId userId)
+                                 return $ fmap entityVal mbEnt
+                                 
+    mbLang <- UF.obtenirIdioma
+
+    mbUserArt <- runDB $ get artId
+    case mbUserArt of
+       Nothing -> notFound
+       Just art
+                | userArtTipusArt art /= TipArtVol -> notFound
+                | not $ isJust $ userArtIdArtVol art -> notFound
+                | userArtIdUsuari art /= userId -> notFound
+                | otherwise -> do
+                       let idArtVol = fromJust $ userArtIdArtVol art
+                       mbArtVol <- runDB $ get idArtVol
+                       case mbArtVol of
+                         Nothing -> notFound
+                         Just artVol -> do
+                           let vol = userVolFromUserArt art artVol
+                           mydefaultLayout emptyWidget $ do
+                               setTitleI MsgUserVisitFlightTitle
+                               $(widgetFile "uservol-visitar-titol")
+                               $(widgetFile "uservol-visitar-detalls-compra")
+                               $(widgetFile "boto-back")
+
+getAdminVisitFlightR :: UserArtId -> Handler RepHtml
+getAdminVisitFlightR artId = do
+
+    muser <- maybeAuth
+    mbDG <- runDB llegirGlobals
+    let dadesGlobals = fromJust mbDG
+    
+    mbUserInfo <- case muser of
+                         Nothing -> return Nothing
+                         Just (Entity userId _) -> do
+                                 mbEnt <- runDB $ getBy (UniqueUserInfoUserId userId)
+                                 return $ fmap entityVal mbEnt
+
+    mbLang <- UF.obtenirIdioma
+
+    mbUserArt <- runDB $ get artId
+    case mbUserArt of
+       Nothing -> notFound
+       Just art
+                | userArtTipusArt art /= TipArtVol -> notFound
+                | not $ isJust $ userArtIdArtVol art -> notFound
+                | otherwise -> do
+                       let idArtVol = fromJust $ userArtIdArtVol art
+                       mbArtVol <- runDB $ get idArtVol
+                       case mbArtVol of
+                         Nothing -> notFound
+                         Just artVol -> do
+                           let vol = userVolFromUserArt art artVol
+                           mydefaultLayout emptyWidget $ do
+                               setTitleI MsgUserVisitFlightTitle
+                               $(widgetFile "uservol-visitar-titol")
+                               $(widgetFile "uservol-visitar-detalls-compra")
+
+obtenirVolsRecents :: Handler [(UserArtId, UserVol)]
+obtenirVolsRecents = do
+        muser <- maybeAuth
+        mbLang <- UF.obtenirIdioma
+        diaDAvui <- liftIO $ UF.today ()
+
+        -- vols <- runDB $ selectList filtresDeSelect [Desc UserVolPosted, OffsetBy offset, LimitTo UF.volsEntradesPerPàgina]
+        result <- runDB $ select $ from $ \(av `InnerJoin` ua `InnerJoin` usr) -> do
+                on ((ua ^. UserArtIdUsuari) Esql.==. (usr ^. UserId))
+                on ((ua ^. UserArtIdArtVol) Esql.==. just (av ^. ArtVolId))
+                where_ ((usr ^. UserVeto) Esql.==. val False)
+                where_ ((ua ^. UserArtEstat) Esql.==. val EstArt_Exposat)
+                where_ (ua ^. UserArtData Esql.>=. val diaDAvui)
+                when (isJust muser) $ where_ (ua ^. UserArtIdUsuari Esql.!=. val (entityKey $ fromJust muser))
+                orderBy [desc (ua ^. UserArtPosted)]
+                limit 3
+                return (usr, ua, av)
+                
+        let result2 = map (\(_,a,b) -> (a,b)) (result::[(Entity User, Entity UserArt, Entity ArtVol)])
+
+        let volsRecents = map userVolFromUserArtEnts result2
+        return volsRecents    
+
+
+widgetVolsRecents :: Maybe (Entity User) -> Maybe Text -> [(UserArtId, UserVol)] -> GWidget sub App ()
+widgetVolsRecents muser mbLang volsRecents = do
+        $(widgetFile "uservol-llistar-recents")
+
+widgetTotsElsVols :: Maybe (Entity User) -> AppMessage -> Maybe Text -> Bool ->
+                     Route App -> Route App -> Maybe (Route App) -> [(UserArtId, UserVol)] -> GWidget sub App ()
+widgetTotsElsVols muser títol mbLang ésModificable navPrimer navSegüent mbNavAnterior vols = do
+                        setTitleI títol
+                        $(widgetFile "uservol-llistar")
+        

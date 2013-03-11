@@ -1,0 +1,1 @@
+﻿select distinct "país" from aeroport  where "país" not in (select nom from "país") order by "país" ;

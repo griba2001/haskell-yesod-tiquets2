@@ -1,0 +1,2 @@
+<!-- params: artId -->
+<p> <button type="button" onclick="location.href='@{UserSendInterestR artId}';">_{MsgBotòEnviarMsgInterès}

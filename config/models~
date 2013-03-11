@@ -1,0 +1,86 @@
+User
+    email Text
+    password Text Maybe
+    verkey Text Maybe -- Used for resetting passwords
+    verified Bool
+    veto Bool "default=false"
+    UniqueUser email
+
+UserInfo
+    idUsuari UserId
+    posted UTCTime
+    nom Text
+    cognoms Text
+    adreça Text
+    codiPostal Text
+    població Text
+    país Text
+    idioma Text "default='ca'::character varying"
+    telèfon Text Maybe
+    UniqueUserInfoUserId idUsuari
+
+Globals
+    index Int
+    posted UTCTime
+    comissió Double
+    adminList Text
+    UniqueGlobalsIndex index
+
+ArtVol
+    origenPaís Text  "default='ES'::character varying"
+    origenPoblació Text "default='Badalona'::character varying"
+    origenAeroport Text "default='BCN'::character varying"
+    destíPaís Text       "default='ES'::character varying"
+    destíPoblació Text  "default='Badalona'::character varying"
+    destíAeroport Text  "default='BCN'::character varying"
+    numVol Text
+    dataTornada Day Maybe
+    numVolTornada Text Maybe
+    líniaAèria Text
+    numReserva Text
+    webOnVaFerLaReserva Text
+    nombreDeSeients Int
+
+ArtEnt                  -- entrades
+    espectacle Text
+    seients Text
+    nombre Int
+
+UserArt
+    idUsuari UserId
+    posted UTCTime
+    estat EstatArt "default='EstArt_Exposat'::character varying"
+    tipusArt TipusArticle
+    idArtVol ArtVolId Maybe
+    idArtEnt ArtEntId Maybe
+    data Day
+    preu Double
+    moneda Moneda
+    -- ésPreuNegociable Bool
+    comentaris Textarea Maybe
+
+UserMsg
+    idUsuari UserId
+    posted UTCTime
+    from Text
+    fromIdUsuari UserId Maybe
+    userArtId UserArtId Maybe
+    assumpte Text
+    cos Textarea
+    llegit Bool
+    urgent Bool
+
+Pais
+    codi Text 
+    nom Text
+    UniquePaísCodi codi
+
+Aeroport
+    codi Text
+    població Text
+    provincia Text Maybe 
+    nom Text Maybe
+    país Text
+    UniqueAeroportCodi codi
+
+ -- By default this file is used in Model.hs (which is imported by Foundation.hs)

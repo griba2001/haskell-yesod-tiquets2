@@ -1,0 +1,27 @@
+<!-- params: userInfo, arts, mbLang -->
+<p> _{MsgUserInfoNom}: #{userInfoNom userInfo}
+<p> _{MsgUserInfoCognoms}: #{userInfoCognoms userInfo}
+$if null $ arts
+  <p>_{MsgEmpty} <button type="button" onclick="history.back()">_{MsgHistoryBack}</button>
+$else
+  <table>
+    <tr>
+        <th> _{MsgUserArtTipusArt}
+        <th> _{MsgUserArtData}
+        <th> _{MsgUserArtPreu}
+        <th>
+        <th>
+    $forall (artId, art) <- arts
+      <tr>
+        <td> _{UF.nomTipusArticle $ userArtTipusArt art}
+        <td> #{UF.formataDay mbLang $ userArtData art}
+        <td style="text-align:right"> #{UF.showPreu (userArtPreu art)}
+        <td> #{UF.nomMonedaCurt $ userArtMoneda art}
+        <td>
+           $if userArtTipusArt art == TipArtVol
+              <a href=@{AdminVisitFlightR artId}> _{MsgDetalls}
+  <p>
+     <button type="button" onclick="location.href='@{navPrimer}';">_{MsgNavPrimer}
+     <button type="button" onclick="location.href='@{navSegüent}';">_{MsgNavSegüent}
+     $maybe navAnterior <- mbNavAnterior
+        <button type="button" onclick="location.href='@{navAnterior}';">_{MsgNavAnterior}

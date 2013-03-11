@@ -1,0 +1,12 @@
+<!-- params: msg, mbLang -->
+<h5 style="margin:auto;text-align:center"> _{MsgUserViewMsgTitle}
+<div class="detall">
+  <p>
+  <p> _{MsgUserMsgLlegit}: #{userMsgLlegit msg}
+  <p> _{MsgUserMsgUrgent}: #{userMsgUrgent msg}
+  <p> _{MsgUserMsgPosted}: #{UF.formataUTCT mbLang $ userMsgPosted msg}
+  <p> _{MsgUserMsgFrom}: #{userMsgFrom msg}
+  <p> _{MsgUserMsgAssumpte}: #{userMsgAssumpte msg}
+  <p> _{MsgUserMsgCos}: #{userMsgCos msg}
+$maybe artId <- userMsgUserArtId msg
+  <p> <button type="button" onclick="location.href='@{UserVisitOwnFlightR artId}';">_{MsgBotóVisitaDetallsArticle}

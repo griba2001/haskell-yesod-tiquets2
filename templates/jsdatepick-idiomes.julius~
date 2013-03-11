@@ -1,0 +1,25 @@
+var myLang = "#{mbTextToText mbLang}" ;
+// alert('idioma == '+myLang) ;
+g_l = [];
+if (myLang == "ca") {
+        g_l["MONTHS"] = ["Gener","Febrer","Març","Abril","Maig","Juny","Juliol","Augost","Setembre","Octubre","Novembre","Desembre"];
+        g_l["DAYS_3"] = ["Dg","Dl","Dt","Dm","Dj","Dv","Ds"];
+        g_l["MONTH_FWD"] = "Desplaça un mes endavant";
+        g_l["MONTH_BCK"] = "Desplaça un mes enrera";
+        g_l["YEAR_FWD"] = "Desplaça un any endavant";
+        g_l["YEAR_BCK"] = "Desplaça un any enrera";
+        g_l["CLOSE"] = "Tanca el calendari";
+        g_l["ERROR_2"] = g_l["ERROR_1"] = "Objecte de data no és vàlid!";
+        g_l["ERROR_4"] = g_l["ERROR_3"] = "Camp objectiu no és vàlid";
+}
+else {
+        g_l["MONTHS"] = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+        g_l["DAYS_3"] = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+        g_l["MONTH_FWD"] = "Move a month forward";
+        g_l["MONTH_BCK"] = "Move a month backward";
+        g_l["YEAR_FWD"] = "Move a year forward";
+        g_l["YEAR_BCK"] = "Move a year backward";
+        g_l["CLOSE"] = "Close the calendar";
+        g_l["ERROR_2"] = g_l["ERROR_1"] = "Date object invalid!";
+        g_l["ERROR_4"] = g_l["ERROR_3"] = "Target invalid";
+}

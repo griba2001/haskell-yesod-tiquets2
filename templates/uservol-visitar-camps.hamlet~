@@ -1,0 +1,26 @@
+<!-- params: vol -->
+<div class="detall">
+  <p> _{MsgUserVolOrigen}: #{UF.nomDest $ userVolOrigen vol}
+  <p> _{MsgUserVolDestí}: #{UF.nomDest $ userVolDestí vol}
+  <p>
+     <table>
+       <tr>
+          <td> _{MsgUserVolAnada}:
+          <td> #{UF.formataDay mbLang $ userVolDataAnada vol}
+          <td> _{MsgUserVolNumVolAnada}: #{userVolNumVolAnada vol}
+       <tr>
+          <td> _{MsgUserVolTornada}:
+          $maybe dataTornada <- userVolDataTornada vol
+            <td> #{UF.formataDay mbLang dataTornada}
+            $maybe numVolTornada <- userVolNumVolTornada vol
+              <td> _{MsgUserVolNumVolTornada}: #{numVolTornada}
+
+  <p> _{MsgUserVolNombreDeSeients}: #{userVolNombreDeSeients vol}
+  <p> _{MsgUserVolLíniaAèria}: #{userVolLíniaAèria vol}
+  <p> _{MsgUserVolNumReserva}: #{userVolNumReserva vol}
+  <p> _{MsgUserVolWebOnVaFerLaReserva}: #{userVolWebOnVaFerLaReserva vol}
+  <p> _{MsgUserArtPreu}: #{UF.showPreu (userVolPreu vol)} #{UF.nomMonedaCurt $ userVolMoneda vol}
+  <p> _{MsgUserArtComentaris}: #
+       $maybe comentaris <- userVolComentaris vol
+          #{unTextarea comentaris}
+  <!-- <p> _{MsgUserArtÉsPreuNegociable}: _{UF.showBoolYesNo $ userVolÉsPreuNegociable vol} -->

@@ -1,0 +1,8 @@
+<form method=post enctype=#{enctype}>
+  <table>
+    <tr>
+      <td>              
+        ^{usrInfoWidget}
+    <tr>
+      <td>
+         <input type=submit value=_{MsgSubmit}>

@@ -1,0 +1,38 @@
+var enCanviarPais = function( pais, idElemSelect, esOpcional) {
+     // alert('pais typeof: '+typeof pais+'; valor: '+pais) ;
+     // alert('esOpcional: '+ esOpcional) ;
+     if (pais == "none" || !(pais.charAt(0))) {
+        var htmlOpcions = '' ;
+        if (esOpcional) {
+           htmlOpcions = '<option value="none" selected>#{UF.escapeXmlChars $ defaultFormMessage MsgSelectNone}</option>' ;
+        }
+        document.getElementById(idElemSelect).innerHTML = htmlOpcions ;
+     }
+     else {
+        if (window.XMLHttpRequest)
+        {// code for IE7+, Firefox, Chrome, Opera, Safari
+           xmlhttp=new XMLHttpRequest();
+        }
+        else
+        {// code for IE6, IE5
+           xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+        }
+        xmlhttp.open('GET','/get-airports/'+pais,false);
+        xmlhttp.send();
+        xmlDoc=xmlhttp.responseXML;
+        
+        var htmlOpcions = '' ;     
+        if (esOpcional) {
+           htmlOpcions = '<option value="none" selected>#{UF.escapeXmlChars $ defaultFormMessage MsgSelectNone}</option>' ;
+        }
+        var nodes = xmlDoc.getElementsByTagName("dest") ;
+        var len = nodes.length ;
+        for (i = 0; i < len; i++) {
+              var node = nodes[i] ;
+              var codi = node.getAttribute("codi") ;
+              var text = node.childNodes[0].nodeValue ;
+              htmlOpcions += '<option value="'+ codi + '">' + text + '</option>' ;
+        }
+        document.getElementById(idElemSelect).innerHTML = htmlOpcions ;
+    }
+}

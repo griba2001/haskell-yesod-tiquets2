@@ -1,0 +1,19 @@
+$if null $ vols
+  <p>_{MsgEmpty} <button type="button" onclick="history.back()">_{MsgHistoryBack}</button>
+$else
+  <ul>
+    $forall (volId, vol) <- vols
+       <li> #{UF.formataDay mbLang $ userVolDataAnada vol} #
+            \ _{MsgListFlightsFrom} #{UF.nomDest destMap $ userVolOrigenAeroport vol} #
+            \ _{MsgListFlightsTo} #{UF.nomDest destMap $ userVolDestíAeroport vol}
+            $if UF.andAlso ésModificable (userVolEstat vol == EstArt_Exposat)
+                 <a href="@{UserEditFlightR volId}"> _{MsgEdit}
+            $elseif isJust muser
+                 <a href="@{UserVisitFlightR volId}"> _{MsgDetalls}
+
+  <p>
+     <button type="button" onclick="location.href='@{navPrimer}';">_{MsgNavPrimer}
+     <button type="button" onclick="location.href='@{navSegüent}';">_{MsgNavSegüent}
+     $maybe navAnterior <- mbNavAnterior
+        <button type="button" onclick="location.href='@{navAnterior}';">_{MsgNavAnterior}
+

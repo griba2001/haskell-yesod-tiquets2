@@ -1,0 +1,62 @@
+<header>
+   <hgroup>
+       <img src="@{StaticR img_degradat_png}" alt="banner">
+       <h2> La Revenda
+
+<section>
+  <table style="width:100%">
+    <col style="width:15%;">
+    <col style="width:70%">
+    <col style="width:15%;">
+    <tr>
+       <td .vr-dreta style="vertical-align:top;">
+          <p> Menu
+          <nav>
+             <ul>
+                $maybe _ <- muser
+                   <li><a href=@{TotsElsVolsR 0}> _{MsgDef_othersFlights}</a>
+                   <li><a href=@{CercarVolsR}> _{MsgDef_searchForOthersFlights}</a>
+                $nothing
+                   <li><a href=@{TotsElsVolsR 0}> _{MsgDef_allFlights}</a>
+                   <li><a href=@{CercarVolsR}> _{MsgDef_searchForFlights}</a>
+          
+       <td>
+          <table style="margin:auto">
+             <tr>
+                <td>  
+                    $maybe msg <- mmsg
+                       <div #message>#{msg}
+             <tr>
+                <td>^{widget}
+
+       <td .vr-esq style="vertical-align:top;">
+          $maybe entUser <- muser
+                <p> _{MsgHello} #{userEmail $ entityVal entUser}
+                <ul>
+                    <li><a href=@{UserInfoR}> _{MsgDef_userInfo}</a>
+                    <li><a href=@{UserAddFlightR}> _{MsgDef_addFlight}</a>
+                    <li><a href=@{ElsMeusVolsR 0}> _{MsgDef_myFlights}</a>
+                    <li><a href=@{MailR 0}> _{MsgDef_mail}</a>
+                    <li><a href=@{AuthR LogoutR}> _{MsgDef_logout}</a>
+                <p>
+                $if ésAdmin
+                   <p> _{MsgDef_admin}
+                   <ul>
+                       <li><a href=@{CercarUsrsR}> _{MsgDef_findUsers}</a>
+                       <li><a href=@{GlobalsR}> _{MsgDef_globals}<a> 
+          $nothing
+                <p>
+                   <a href=@{AuthR LoginR}> _{MsgDef_login}
+          <p> _{MsgIdiomes}
+          <nav>
+             <ul>
+                $maybe currentRoute <- mbCurrentRoute
+                        <li><a href="@{SetLangR}?lang=en;ref=@{routeToMaster currentRoute}">English</a>
+                        <li><a href="@{SetLangR}?lang=ca;ref=@{routeToMaster currentRoute}">Català</a>
+                $nothing 
+                        <li><a href="@{SetLangR}?lang=en">English</a>
+                        <li><a href="@{SetLangR}?lang=ca">Català</a>
+
+<footer>
+    <p>
+    <p> Powered by <a href="http://www.yesodweb.com/">Yesod</a>

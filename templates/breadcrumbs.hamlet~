@@ -1,0 +1,6 @@
+$if not $ I.null bcAncestres
+  $forall (route, txt) <- bcAncestres
+     <a href="@{route}">
+       <u>#{txt}
+     \ #
+  <p>&nbsp;

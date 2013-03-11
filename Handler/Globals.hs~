@@ -1,0 +1,79 @@
+module Handler.Globals where
+
+import Import
+
+import Data.Time.Clock (getCurrentTime) -- , UTCTime
+import Data.Maybe as MB
+import qualified Util.UtilForms as UF
+import qualified Handler.UtilHandlers as UH
+import Data.Text as TS
+import qualified Data.List as L
+
+data FormDadesGlobals = FormDadesGlobals {fdgComissió:: Double, fdgAdmin1:: Text, fdgAdmin2:: Maybe Text, fdgAdmin3:: Maybe Text, fdgAdmin4:: Maybe Text}
+
+globalsForm :: App -> [Text] -> Maybe FormDadesGlobals -> Form FormDadesGlobals
+globalsForm master langs mbFDG = renderTable $ FormDadesGlobals
+        <$> (formToAForm $ mreq comissióField (fieldSettingsLabel MsgFrmGlobalsComissió) (fdgComissió <$> mbFDG) >>= (return . fmap UF.vistaAmbEstrella))
+        <*> (formToAForm $ mreq textField (fieldSettingsLabel MsgFrmGlobalsAdmin) (fdgAdmin1 <$> mbFDG) >>= (return . fmap UF.vistaAmbEstrella))
+        <*> aopt textField (fieldSettingsLabel MsgFrmGlobalsAdmin) (fdgAdmin2 <$> mbFDG)
+        <*> aopt textField (fieldSettingsLabel MsgFrmGlobalsAdmin) (fdgAdmin3 <$> mbFDG)
+        <*> aopt textField (fieldSettingsLabel MsgFrmGlobalsAdmin) (fdgAdmin4 <$> mbFDG)
+  where      
+    comissióField = check validateComissió doubleField
+    validateComissió com
+            | com < 0 = Left $ renderMessage master langs MsgGlobals_ErrComissióIlegal
+            | otherwise = Right com
+
+formDadesGlobalsDeDadesGlobals :: DadesGlobals -> FormDadesGlobals
+formDadesGlobalsDeDadesGlobals dg = FormDadesGlobals {fdgComissió = (dgComissió dg) * 100.0, fdgAdmin1 = admin1, fdgAdmin2 = admin2, fdgAdmin3 = admin3, fdgAdmin4 = admin4}
+        where
+                admins = dgAdmins dg
+                lenAdmins = L.length admins
+                admin1 = admins!!0
+                admin2 = if lenAdmins >= 2 then Just (admins!!1) else Nothing
+                admin3 = if lenAdmins >= 3 then Just (admins!!2) else Nothing
+                admin4 = if lenAdmins >= 4 then Just (admins!!3) else Nothing
+
+dadesGlobalsDeFormDadesGlobals :: FormDadesGlobals -> DadesGlobals
+dadesGlobalsDeFormDadesGlobals fdg = DadesGlobals {dgComissió = (fdgComissió fdg) / 100.0, dgAdmins = admins }
+  where
+          admins = [fdgAdmin1 fdg] ++ catMaybes [fdgAdmin2 fdg,fdgAdmin3 fdg,fdgAdmin4 fdg]
+          
+
+getGlobalsR :: Handler RepHtml
+getGlobalsR = do
+    master <- getYesod
+    muser <- maybeAuth
+    langs <- languages
+    
+    mbDG <- runDB llegirGlobals
+    let dadesGlobals = fromJust mbDG
+        fdg = formDadesGlobalsDeDadesGlobals dadesGlobals
+    
+    (tabulatedFormWidget, enctype) <- generateFormPost $ globalsForm master langs (Just fdg)
+    defaultLayout $ do
+        setTitleI MsgGlobalsTitle
+        $(widgetFile "tabulated-form")
+
+postGlobalsR :: Handler RepHtml
+postGlobalsR = do
+    muser <- maybeAuth
+    master <- getYesod
+    langs <- languages
+    let Entity userId _user = fromJust muser  -- isAuthorized
+    ((res, tabulatedFormWidget), enctype) <- runFormPost $ globalsForm master langs Nothing
+    case res of
+        FormSuccess fdg -> do
+            let dg = dadesGlobalsDeFormDadesGlobals fdg
+            currentTime <- liftIO $ getCurrentTime
+            runDB $ updateWhere [GlobalsIndex ==. 1] [GlobalsComissió =. dgComissió dg
+                                                    , GlobalsAdminList =. TS.intercalate "," (dgAdmins dg), GlobalsPosted =. currentTime]
+
+            setMessageI MsgGlobalsHasBeenUpdated
+            redirect GlobalsR
+
+        _ -> do
+                setMessageI MsgPleaseCorrect
+                mydefaultLayout emptyWidget $ do
+                  setTitleI MsgGlobalsTitle
+                  $(widgetFile "tabulated-form")

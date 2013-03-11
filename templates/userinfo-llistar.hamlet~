@@ -1,0 +1,29 @@
+<!-- params: usrs::[(usrId,usr)] -->
+$if null $ usrs
+  <p>_{MsgEmpty} <button type="button" onclick="history.back()">_{MsgHistoryBack}</button>
+$else
+  <table>
+    <tr>
+        <th> _{MsgUserInfoNom}
+        <th> _{MsgUserInfoCognoms}
+        <th> _{MsgUserInfoPaís}
+        <th> _{MsgUserInfoPoblació}
+        <th> _{MsgUserInfoCodiPostal}
+        <th> 
+    $forall (_usrInfoId, usr) <- usrs
+       <tr>
+        <td> #{userInfoNom usr}
+        <td> #{userInfoCognoms usr}
+        <td> _{UP.nomPaís $ userInfoPaís usr}
+        <td> #{userInfoPoblació usr}
+        <td> #{userInfoCodiPostal usr}
+        <td>
+             <a href="@{UserInfoAdminVisitarR $ userInfoIdUsuari usr}"> _{MsgDetalls} #
+             <a href="@{UserInfoAdminLlistarArticlesR (userInfoIdUsuari usr) 0}">_{MsgUserInfoLlistar_articles}
+
+  <p>
+     <button type="button" onclick="location.href='@{navPrimer}';">_{MsgNavPrimer}
+     <button type="button" onclick="location.href='@{navSegüent}';">_{MsgNavSegüent}
+     $maybe navAnterior <- mbNavAnterior
+        <button type="button" onclick="location.href='@{navAnterior}';">_{MsgNavAnterior}
+

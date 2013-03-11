@@ -1,0 +1,178 @@
+Hello: Hello
+Novetats:
+
+Welcome nom@Text: Welcome #{nom}, you are now logged in
+
+Yes: Yes
+No: No
+
+UserEmail: E-mail
+UserVeto: Veto
+UserInfoAdminViewTitle: User details
+UserInfoAdminLlistarArticlesTitle: User articles
+UserInfoLlistar_articles: Articles
+
+UserInfoTitle: My Profile
+
+UserInfoNom: First name
+UserInfoCognoms: Family name
+UserInfoAdreça: Address
+UserInfoCodiPostal: Postal code
+UserInfoPoblació: City
+UserInfoPaís: Country
+UserInfoIdioma: Language for the web
+UserInfoTelèfon: Phone number
+
+UserInfo_GrupNom: Name
+UserInfo_GrupAdreça: Adress
+UserInfo_GrupComm: Communications
+UserInfo_GrupAltres: Other
+
+Submit: submit
+DeleteArt: delete article
+
+UserInfoAdminVisitaCanviarVeto: Toggle veto
+
+IdiomaEN: English
+IdiomaCA: Catalan
+
+UsrInfoHasBeenUpdated: The profile has been updated
+PleaseCorrect: Please correct
+
+CtrySpain:Spain
+CtryUK:United Kingdom
+CtryFrance: France
+CtryGermany:Germany
+
+Def_login: Login
+Def_logout: Logout
+Def_userInfo: My profile
+Def_addFlight: Add flight
+Def_myFlights: My flights
+Def_allFlights: All flights
+Def_othersFlights: Others flights
+Def_searchForFlights: Search for flights
+Def_searchForOthersFlights: Search for others flights
+Def_mail: Mail
+Def_findUsers: Find users
+Def_admin: Administration
+Def_credits: Credits
+
+Confirm: Are you sure?
+
+Fnd_IDontHaveAnAccount:I don't have an account / Reset the password
+
+HistoryBack: Back
+
+GlobalsTitle: Global data
+Def_globals: Global data
+
+FrmGlobalsComissió: Commission (%)
+FrmGlobalsAdmin: Administrator
+
+GlobalsComissió: Commission
+GlobalsAdmins: Administrators
+Globals_ErrComissióIlegal: Value should be > 0
+GlobalsHasBeenUpdated: Global data has been updated
+
+UserArtPreu: Price
+UserArtPreuDeVenda: Sale price
+UserArtMoneda: Currency
+UserArtÉsPreuNegociable: Price is negotiable
+UserArtData: Date
+UserArtComentaris: Comments
+UserArtTipusArt: Article type
+UserArtEstat: State
+
+TipArtVol: Flight
+TipArtAllotjament: Hostage
+
+UserVolOrigenPaís: Origin country
+UserVolOrigenPoblació: Location
+UserVolOrigenAeroport: Airport
+
+UserVolDestíPaís: Destination country
+UserVolDestíPoblació: Location
+UserVolDestíAeroport: Airport
+
+UserVolAnada: Departure
+UserVolTornada: Return
+
+UserVolDataAnada: Depart date
+UserVolNumVolAnada: Flight number
+UserVolDataTornada: Return date
+UserVolNumVolTornada: Flight number
+UserVolLíniaAèria: Air line
+UserVolNumReserva: Reserve number
+UserVolWebOnVaFerLaReserva: Where did you reserve
+UserVolNombreDeSeients: Number of people
+
+LegendOrigen: Origin
+LegendDestí: Destination
+LegendAnada: Depart
+LegendTornada: Return
+LegendDetalls: Detalls
+
+
+UserMsgPosted: TimeAndDate
+UserMsgFrom: From
+UserMsgAssumpte: Subject
+UserMsgCos: Body
+UserMsgLlegit: ReadMark
+UserMsgUrgent: Urgent
+
+UserMsgLlegitSí: 
+UserMsgLlegitNo: New
+
+UserAddFlightTitle: Add flight
+UserEditFlightTitle: Edit flight
+UserVisitFlightTitle: Flight details
+UserViewMsgTitle: Msg details
+UserListMsgTitle: Mail
+
+
+Edit: edit
+
+BotòEnviarMsgInterès: Send interest message
+
+UserVol_HasBeenAdded: Flight has been added
+UserVol_HasBeenUpdated: Flight has been updated
+UserVol_HasBeenDeleted: Flight has been deactivated
+
+InterèsEnviat: Flight interest msg. has been sent
+
+UserVol_ErrOrigenIgualADEstí: Origin must not equal Destination!!
+UserVol_ErrDataAnadaÉsEnElPassat: Departure date is in the past
+UserVol_ErrDataAnadaÉsAnteriorADataTornada: Return date cannot precede depart
+UserVol_ErrMancaNumVolTornada: Missing Return Flight number
+UserVol_ErrNombreDeSeientsNoPositiu: Number of people must be greater than zero
+
+UserListMyFlightsTitle: My flights
+UserListOthersFlightsTitle: Others flights
+UserListAllFlightsTitle: All flights
+
+Empty: empty
+Unknown: unknown
+
+ListFlightsFrom: From
+ListFlightsTo: To
+
+FlightSearchTitle: Flight search
+
+Idiomes: Languages
+
+NavPrimer: First
+NavSegüent: Next
+NavAnterior: Previous
+
+RecentVols: Recent flights
+Detalls: Details
+BotóVisitaDetallsArticle: Related article details
+
+ErrRequeixPerfilUsuari: User profile is required
+TensCorreuALaBustiaDelCompte: You have mail in La Revenda
+
+EstArt_Exposat: Exposed
+EstArt_Anuŀlat: Deactivated
+EstArt_Compromès: Reserved
+EstArt_Venut: Sold

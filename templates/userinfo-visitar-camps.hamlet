@@ -1,0 +1,13 @@
+<!-- params: user, userInfo -->
+<h5 style="margin:auto;text-align:center"> _{MsgUserInfoAdminViewTitle}
+<div class="detall">
+  <p> _{MsgUserEmail}: #{userEmail user}
+  <p> _{MsgUserInfoNom}: #{userInfoNom userInfo}
+  <p> _{MsgUserInfoCognoms}: #{userInfoCognoms userInfo}
+  <p> _{MsgUserInfoAdreça}: #{userInfoAdreça userInfo}
+  <p> _{MsgUserInfoCodiPostal}: #{userInfoCodiPostal userInfo}
+  <p> _{MsgUserInfoPoblació}: #{userInfoPoblació userInfo}
+  <p> _{MsgUserInfoPaís}: #{UP.nomPaís $ userInfoPaís userInfo}
+  <p> _{MsgUserInfoIdioma}: _{UF.nomIdioma $ userInfoIdioma userInfo}
+  <p>
+  <p> _{MsgUserVeto}: _{UF.showBoolYesNo $ userVeto user}

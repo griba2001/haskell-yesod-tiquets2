@@ -1,0 +1,144 @@
+module Handler.UserVolSendInterest where
+
+import Import as I
+
+import Data.Time.Clock (UTCTime(..), getCurrentTime, secondsToDiffTime) -- , UTCTime
+import Data.Time.Calendar (Day(..), addDays) -- , diffDays
+import Data.Maybe
+import qualified Util.UtilForms as UF
+-- import Util.UtilQQHereDoc
+-- import Database.Persist.GenericSql(rawSql)
+import Database.Persist.Query.GenericSql (SqlPersist)
+import qualified Data.Map as M
+import Control.Monad.Logger (MonadLogger)
+import Control.Monad.Trans.Resource (MonadResourceBase)
+import Database.Esqueleto as Esql
+import Control.Monad (when)
+import Handler.UserVol
+import Network.Mail.Mime
+import qualified Data.Text.Lazy.Encoding as TLE
+import qualified Data.Text.Lazy as TL
+import qualified Data.Text as TS
+import qualified Util.UtilPaisos as UP
+import qualified Handler.UtilHandlers as UH
+
+
+data FormInterès = FormInterès {fintAssumpte::Text, fintCos::Textarea}
+
+fintForm :: Maybe FormInterès -> Form FormInterès
+fintForm mbFormInterès = renderTable $ FormInterès
+        <$> (formToAForm $ mreq textField (fieldSettingsLabel MsgUserMsgAssumpte) (fintAssumpte <$> mbFormInterès) >>= (return . fmap UF.vistaAmbEstrellaL))
+        <*> (formToAForm $ mreq textareaField (fieldSettingsLabel MsgUserMsgCos) {fsAttrs = [("rows","4")]} (fintCos <$> mbFormInterès) >>= (return . fmap UF.vistaAmbEstrellaL))
+
+getUserSendInterestR :: UserArtId -> Handler RepHtml
+getUserSendInterestR userArtId = do
+
+    muser <- maybeAuth
+    mbDG <- runDB llegirGlobals
+    let dadesGlobals = fromJust mbDG
+    mbUserInfo <- case muser of
+                         Nothing -> return Nothing
+                         Just (Entity userId _) -> do
+                                 mbEnt <- runDB $ getBy (UniqueUserInfoUserId userId)
+                                 return $ fmap entityVal mbEnt
+    mbLang <- UF.obtenirIdioma
+
+    mbUserArt <- runDB $ get userArtId
+    case mbUserArt of
+       Nothing -> notFound
+       Just art
+                | userArtTipusArt art /= TipArtVol -> notFound
+                | not $ isJust $ userArtIdArtVol art -> notFound
+                | otherwise -> do
+                       let idArtVol = fromJust $ userArtIdArtVol art
+                       mbArtVol <- runDB $ get idArtVol
+                       case mbArtVol of
+                         Nothing -> notFound
+                         Just artVol -> do
+                                let vol = userVolFromUserArt art artVol
+
+                                master <- getYesod
+                                let destMap = appDestsRevMap master
+
+                                (tabulatedFormWidget, enctype) <- generateFormPost $ fintForm Nothing
+                                defaultLayout $ do
+                                        setTitleI MsgUserAddFlightTitle
+                                        $(widgetFile "uservol-visitar-detalls-venda")
+                                        $(widgetFile "tabulated-form")
+
+
+renderSendInterestMail :: Text -> Text -> Text -> Textarea -> Text -> IO ()                                        
+renderSendInterestMail _emailFrom emailTo assumpte cos avís = renderSendMail (emptyMail $ Address Nothing "la_revenda")
+            { mailTo = [Address Nothing emailTo]
+            , mailHeaders =
+                [ ("Subject", assumpte)
+                ]
+            , mailParts = [[textPart]]
+            }
+      where
+        textPart = Part
+            { partType = "text/plain; charset=utf-8"
+            , partEncoding = None
+            , partFilename = Nothing
+            , partContent = TLE.encodeUtf8 $ TL.fromStrict $ (unTextarea cos) `TS.append` "\n\n" `TS.append` avís
+            , partHeaders = []
+            }
+                                        
+postUserSendInterestR :: UserArtId -> Handler RepHtml
+postUserSendInterestR userArtId = do
+
+    muser <- maybeAuth
+    let Entity userId user = fromJust muser  -- isAuthorized
+    mbDG <- runDB llegirGlobals
+    let dadesGlobals = fromJust mbDG
+    mbUserInfo <- case muser of
+                         Nothing -> return Nothing
+                         Just (Entity userId _) -> do
+                                 mbEnt <- runDB $ getBy (UniqueUserInfoUserId userId)
+                                 return $ fmap entityVal mbEnt
+                                 
+    mbLang <- UF.obtenirIdioma
+
+    mbUserArt <- runDB $ get userArtId
+    case mbUserArt of
+       Nothing -> notFound
+       Just art
+                | userArtTipusArt art /= TipArtVol -> notFound
+                | not $ isJust $ userArtIdArtVol art -> notFound
+                | otherwise -> do
+                       let idArtVol = fromJust $ userArtIdArtVol art
+                       mbArtVol <- runDB $ get idArtVol
+                       case mbArtVol of
+                         Nothing -> notFound
+                         Just artVol -> do
+                             let vol = userVolFromUserArt art artVol
+                             mbPropietari <- runDB $ get $ userArtIdUsuari art
+                             case mbPropietari of
+                                  Nothing -> notFound
+                                  Just propietari -> do
+                                    ((res, tabulatedFormWidget), enctype) <- runFormPost $ fintForm Nothing
+                                    case res of
+                                        FormSuccess FormInterès {..} -> do
+                                             hora <- liftIO getCurrentTime
+                                             _ <- runDB $ insert $ UserMsg {userMsgIdUsuari = userVolIdUsuari vol, userMsgPosted = hora,
+                                                                            userMsgFrom = userEmail user,
+                                                                            userMsgFromIdUsuari = Just userId,
+                                                                            userMsgUserArtId = Just userArtId,
+                                                                            userMsgAssumpte = fintAssumpte, userMsgCos = fintCos,
+                                                                            userMsgLlegit = False, userMsgUrgent = False}
+                                             setMessageI MsgInterèsEnviat
+                                             
+                                             langs <- languages
+                                             master <- getYesod
+                                             let avís = renderMessage master langs MsgTensCorreuALaBustiaDelCompte
+                                                 
+                                             liftIO $ renderSendInterestMail (userEmail user) (userEmail propietari) fintAssumpte fintCos avís
+                                             redirect $ HomeR
+                                        _ -> do
+                                                master <- getYesod
+                                                let destMap = appDestsRevMap master
+                                                
+                                                setMessageI MsgPleaseCorrect
+                                                defaultLayout $ do
+                                                        $(widgetFile "uservol-visitar-detalls-venda")
+                                                        $(widgetFile "tabulated-form")

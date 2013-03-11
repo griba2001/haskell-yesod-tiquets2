@@ -1,0 +1,11 @@
+$if null $ volsRecents
+  <p>_{MsgEmpty}
+$else
+  <ul>
+    $forall Entity volId vol <- volsRecents
+       <li> #{UF.formataDay $ userVolDataAnada vol} #
+            <span title="#{UF.nomDest destMap $ userVolOrigen vol}">#{userVolOrigen vol}
+            \ #
+            <span title="#{UF.nomDest destMap $ userVolDestí vol}">#{userVolDestí vol}
+
+

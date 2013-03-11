@@ -1,0 +1,26 @@
+Default: &defaults
+  user: cvtiquets
+  password: 1b3rg&tiquets
+  host: localhost
+  port: 5432
+  database: tiquets
+  poolsize: 10
+
+Development:
+  database: tiquets_devel
+  poolsize: 10
+  <<: *defaults
+
+Testing:
+  database: tiquets_test
+  <<: *defaults
+
+Staging:
+  database: tiquets
+  poolsize: 10
+  <<: *defaults
+
+Production:
+  database: tiquets_production
+  poolsize: 100
+  <<: *defaults

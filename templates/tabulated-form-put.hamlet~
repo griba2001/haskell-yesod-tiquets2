@@ -1,0 +1,8 @@
+<form method=post enctype=#{enctype}>
+  <table style="margin:auto;text-align:center">
+    <tr>
+      <td>              
+        ^{tabulatedFormWidget}
+    <tr>
+      <td>
+         <input type=submit value=_{MsgSubmit}>

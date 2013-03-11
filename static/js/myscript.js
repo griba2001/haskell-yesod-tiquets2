@@ -1,0 +1,1 @@
+var salut = function () {alert('Welcome') ;} ;

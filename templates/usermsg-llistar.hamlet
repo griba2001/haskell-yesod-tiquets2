@@ -1,0 +1,29 @@
+<!-- params: msgs::[(msgId,msg)], mbLang::Maybe Text -->
+$if null $ msgs
+  <p>_{MsgEmpty} <button type="button" onclick="history.back()">_{MsgHistoryBack}</button>
+$else
+  <table>
+    <tr>
+        <th> 
+        <th> _{MsgUserMsgPosted}
+        <th> _{MsgUserMsgFrom}
+        <th>  _{MsgUserMsgAssumpte}
+    $forall (msgId, msg) <- msgs
+       <tr>
+          <td>
+             $if userMsgLlegit msg
+                _{MsgUserMsgLlegitSí}
+             $else
+                _{MsgUserMsgLlegitNo}
+
+          <td> #{UF.formataHoraLlistatCorreu mbLang $ userMsgPosted msg}
+          <td> #{userMsgFrom msg}
+          <td> #{userMsgAssumpte msg} #
+              <a href="@{MailViewR msgId}"> _{MsgDetalls}
+
+  <p>
+     <button type="button" onclick="location.href='@{navPrimer}';">_{MsgNavPrimer}
+     <button type="button" onclick="location.href='@{navSegüent}';">_{MsgNavSegüent}
+     $maybe navAnterior <- mbNavAnterior
+        <button type="button" onclick="location.href='@{navAnterior}';">_{MsgNavAnterior}
+

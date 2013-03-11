@@ -1,0 +1,6 @@
+<form method=post enctype=#{enctype} onsubmit="return window.confirm(&quot;_{MsgConfirm}&quot;) ;">
+  <table style="margin:auto;text-align:center">
+    ^{tabulatedFormWidget}
+    <tr>
+      <td>
+         <input type="submit" value=_{MsgUserInfoAdminVisitaCanviarVeto} >

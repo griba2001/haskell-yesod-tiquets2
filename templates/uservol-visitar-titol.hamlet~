@@ -1,0 +1,15 @@
+<!-- params: vol, artId -->
+<h5 style="margin:auto;text-align:center"> _{MsgUserVisitFlightTitle}
+<div class="detall">
+  <p>
+  <p> _{MsgUserVolOrigen}: #{UF.nomDest $ userVolOrigen vol}
+  <p> _{MsgUserVolDestí}: #{UF.nomDest $ userVolDestí vol}
+  <p> _{MsgUserVolAnada}: #{UF.formataDay mbLang $ userVolDataAnada vol} _{MsgUserVolNumVolAnada}: #{userVolNumVolAnada vol}
+   
+  <p> _{MsgUserVolTornada}: #
+        $maybe dataTornada <- userVolDataTornada vol
+           #{UF.formataDay mbLang dataTornada} #
+              $maybe numVolTornada <- userVolNumVolTornada vol
+                  _{MsgUserVolNumVolTornada}: #{numVolTornada}
+  <p> _{MsgUserArtPreu}: #{UF.showPreu (userVolPreu vol)} #{UF.nomMonedaCurt $ userVolMoneda vol}
+  <p> _{MsgUserArtÉsPreuNegociable}: _{UF.showBoolYesNo $ userVolÉsPreuNegociable vol}

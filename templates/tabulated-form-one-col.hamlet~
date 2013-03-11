@@ -1,0 +1,7 @@
+<form method=post enctype=#{enctype}>
+  <table .tab-tabulated>
+    <col width="100%">
+    ^{tabulatedFormWidget}
+    <tr>
+      <td>
+         <input type=submit value=_{MsgSubmit}>

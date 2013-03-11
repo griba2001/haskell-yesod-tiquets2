@@ -1,0 +1,75 @@
+<header>
+  <hgroup>
+    <div #capsalera>
+      <img src="@{StaticR img_degradat_arrodonit_jpg}" alt="banner" usemap="#bannermap">
+      <map name="bannermap">
+        <area shape="rect" coords="20,30,224,60" href="@{HomeR}" alt="Home">
+      <div #linia-login style="text-align:center">
+         <div #login>
+            $maybe entUser <- muser
+                _{MsgHello} #{userEmail $ entityVal entUser} #
+                <a href=@{AuthR LogoutR}> _{MsgDef_logout}
+            $nothing
+                <a href=@{AuthR LoginR}> _{MsgDef_login}
+
+         $maybe currentRoute <- mbCurrentRoute
+           <div #idiomes>
+                <a href="@{SetLangR}?lang=en;ref=@{routeToMaster currentRoute}">English
+                \ #
+                <a href="@{SetLangR}?lang=ca;ref=@{routeToMaster currentRoute}">Català
+                \&nbsp;#
+      $maybe entUser <- muser
+            <nav #menu-usuari>
+                <p>&nbsp;&nbsp;&nbsp;
+                    <a href=@{UserInfoR}>_{MsgDef_userInfo}
+                    \&nbsp;&nbsp;&nbsp;#
+                    <a href=@{MailR 0}>_{MsgDef_mail}
+                    \&nbsp;&nbsp;&nbsp;#
+                    <a href=@{UserAddFlightR}>_{MsgDef_addFlight}
+                    \&nbsp;&nbsp;&nbsp;#
+                    <a href=@{ElsMeusVolsR 0}>_{MsgDef_myFlights}
+<section #cos-plantilla>
+  <nav>
+          $maybe entUser <- muser
+                $if ésAdmin
+                   <p> _{MsgDef_admin}:&nbsp;&nbsp;&nbsp;#
+                       <a href=@{CercarUsrsR}>_{MsgDef_findUsers}
+                       \&nbsp;&nbsp;&nbsp;#
+                       <a href=@{GlobalsR}>_{MsgDef_globals}
+
+  <table style="width:100%">
+    <col style="width:20%;">
+    <col style="width:80%">
+    <!-- <col style="width:15%;"> -->
+    <tr>
+       <td .vr-dreta style="vertical-align:top;">
+          <p> Menu
+          <nav>
+             <ul>
+                $maybe _ <- muser
+                   <li><a href=@{TotsElsVolsR 0}> _{MsgDef_othersFlights}</a>
+                   <li><a href=@{CercarVolsR}> _{MsgDef_searchForOthersFlights}</a>
+                $nothing
+                   <li><a href=@{TotsElsVolsR 0}> _{MsgDef_allFlights}</a>
+                   <li><a href=@{CercarVolsR}> _{MsgDef_searchForFlights}</a>
+          ^{widgetLeft}
+       <td style="vertical-align:middle">
+          <table #taula-central>
+             <col width="100%">
+             <tr>
+                <td style="text-align:left;vertical-align:top">
+                    <!-- {bcWidget} -->
+             <tr>
+                <td style="vertical-align:middle">
+                     <table style="width:100%">
+                        <col width="100%">
+                        <tr>
+                           <td>
+                              $maybe msg <- mmsg
+                                 <div #message>#{msg}
+                        <tr>
+                           <td>^{widget}
+
+<footer>
+    <p> <a href="@{CreditsR}">_{MsgDef_credits}</a>
+    <p> Powered by <a href="http://www.yesodweb.com/">Yesod</a>

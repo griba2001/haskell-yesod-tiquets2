@@ -1,0 +1,322 @@
+{-# LANGUAGE ConstraintKinds #-}
+module Handler.UserVolAddEdit where
+
+import Import as I
+
+import Data.Time.Clock (UTCTime(..), getCurrentTime, secondsToDiffTime) -- , UTCTime
+import Data.Time.Calendar (Day(..), addDays) -- , diffDays
+import Data.Maybe as MB
+import qualified Data.List as L
+import qualified Util.UtilForms as UF
+-- import Util.UtilQQHereDoc
+-- import Database.Persist.GenericSql(rawSql)
+import Database.Persist.Query.GenericSql (SqlPersist)
+import qualified Data.Map as M
+import Control.Monad.Logger (MonadLogger)
+import Control.Monad.Trans.Resource (MonadResourceBase)
+import Database.Esqueleto as Esql
+import Control.Monad (when)
+import Text.Julius (juliusFile)
+import Text.Hamlet (hamletFile)
+import qualified Handler.UtilHandlers as UH
+import Yesod.Form.Types (FormMessage(..))
+import Handler.UserVol
+import qualified Util.UtilPaisos as UP
+
+{-
+import "hsp" HSP.XML.PCDATA (escape)
+import Data.Text.Lazy.Builder (toLazyText)
+-}
+
+
+userVolFormCustom :: App -> [Text] -> UserId -> Maybe UserVol -> [(Text,Text)] -> [(Text,Text)] -> Form UserVol
+userVolFormCustom master langs idUsuari mbUserVol destinacionsInicialsOrigen destinacionsInicialsDestí extra = do
+        -- <$> aformM (return idUsuari)
+        currentTime <- liftIO getCurrentTime -- <*> aformM (liftIO getCurrentTime)
+        (userVolOrigenPaís_Res, userVolOrigenPaís_View) <- mreq (selectField $ UH.myTextOptionsPairs UP.països) ((fieldSettingsLabel MsgUserVolOrigenPaís) {fsAttrs = [("onchange","enCanviarPais(this.value,'h3', false)")]}) (userVolOrigenPaís <$> mbUserVol) >>= (return . fmap UF.vistaAmbEstrella)
+        -- (userVolOrigenPoblació_Res, userVolOrigenPoblació_View) <- mreq textField (fieldSettingsLabel MsgUserVolOrigenPoblació) (userVolOrigenPoblació <$> mbUserVol) >>= (return . fmap UF.vistaAmbEstrella)
+        (userVolOrigenAeroport_Res, userVolOrigenAeroport_View) <- mreq (selectField $ UH.myTextTextOptionsPairs $ destinacionsInicialsOrigen) {fieldParse = parseHelper comprovaDest} (fieldSettingsLabel MsgUserVolOrigenAeroport) (userVolOrigenAeroport <$> mbUserVol) >>= (return . fmap UF.vistaAmbEstrella)
+        
+        (userVolDestíPaís_Res, userVolDestíPaís_View) <- mreq (selectField $ UH.myTextOptionsPairs UP.països) ((fieldSettingsLabel MsgUserVolDestíPaís) {fsAttrs = [("onchange","enCanviarPais(this.value,'h5', false)")]}) (userVolDestíPaís <$> mbUserVol) >>= (return . fmap UF.vistaAmbEstrella)
+        -- (userVolDestíPoblació_Res, userVolDestíPoblació_View) <- mreq textField (fieldSettingsLabel MsgUserVolDestíPoblació) (userVolDestíPoblació <$> mbUserVol) >>= (return . fmap UF.vistaAmbEstrella)
+        (userVolDestíAeroport_Res, userVolDestíAeroport_View) <- mreq (selectField $ UH.myTextTextOptionsPairs $ destinacionsInicialsDestí) {fieldParse = parseHelper comprovaDest} (fieldSettingsLabel MsgUserVolDestíAeroport) (userVolDestíAeroport <$> mbUserVol) >>= (return . fmap UF.vistaAmbEstrella)
+        
+        (userVolDataAnada_Res, userVolDataAnada_View) <- mreq dayField (fieldSettingsLabel MsgUserVolDataAnada) {fsAttrs = [("autocomplete","off")]} (userVolDataAnada <$> mbUserVol) >>= (return . fmap UF.vistaAmbEstrella)
+        (userVolNumVolAnada_Res, userVolNumVolAnada_View) <- mreq textField (fieldSettingsLabel MsgUserVolNumVolAnada) {fsAttrs = [("autocomplete","off")]} (userVolNumVolAnada <$> mbUserVol) >>= (return . fmap UF.vistaAmbEstrella)
+        
+        (userVolDataTornada_Res, userVolDataTornada_View) <- mopt dayField (fieldSettingsLabel MsgUserVolDataTornada) {fsAttrs = [("autocomplete","off")]} (userVolDataTornada <$> mbUserVol)
+        (userVolNumVolTornada_Res, userVolNumVolTornada_View) <- mopt textField (fieldSettingsLabel MsgUserVolNumVolTornada) {fsAttrs = [("autocomplete","off")]} (userVolNumVolTornada <$> mbUserVol)
+        
+        (userVolNombreDeSeients_Res, userVolNombreDeSeients_View) <- mreq positiuField (fieldSettingsLabel MsgUserVolNombreDeSeients) (userVolNombreDeSeients <$> mbUserVol) >>= (return . fmap UF.vistaAmbEstrella)
+        (userVolLíniaAèria_Res, userVolLíniaAèria_View) <- mreq textField (fieldSettingsLabel MsgUserVolLíniaAèria) (userVolLíniaAèria <$> mbUserVol) >>= (return . fmap UF.vistaAmbEstrella)
+        
+        (userVolNumReserva_Res, userVolNumReserva_View) <- mreq textField (fieldSettingsLabel MsgUserVolNumReserva) {fsAttrs = [("autocomplete","off")]} (userVolNumReserva <$> mbUserVol) >>= (return . fmap UF.vistaAmbEstrella)
+        (userVolWebOnVaFerLaReserva_Res, userVolWebOnVaFerLaReserva_View) <- mreq textField (fieldSettingsLabel MsgUserVolWebOnVaFerLaReserva) (userVolWebOnVaFerLaReserva <$> mbUserVol) >>= (return . fmap UF.vistaAmbEstrella)
+        
+        (userArtPreu_Res, userArtPreu_View) <- mreq doubleField (fieldSettingsLabel MsgUserArtPreu) (userVolPreu <$> mbUserVol) >>= (return . fmap UF.vistaAmbEstrella)
+        (userArtMoneda_Res, userArtMoneda_View) <- mreq (selectFieldList UF.monedes) (fieldSettingsLabel MsgUserArtMoneda) (userVolMoneda <$> mbUserVol) >>= (return . fmap UF.vistaAmbEstrella)
+        -- (userVolOrigen_Res, userVolOrigen_View) <- mreq checkBoxField (fieldSettingsLabel MsgUserArtÉsPreuNegociable) (userVolÉsPreuNegociable <$> mbUserVol) >>= (return . fmap UF.vistaAmbEstrella)
+        (userArtComentaris_Res, userArtComentaris_View) <- mopt textareaField (fieldSettingsLabel MsgUserArtComentaris) {fsAttrs = [("rows","4")]} (userVolComentaris <$> mbUserVol)
+        -- <*> aformM (do
+        let userVolEstat_Val = case mbUserVol of
+                     Just userVol -> userVolEstat userVol
+                     Nothing -> EstArt_Exposat
+
+        let userVol_Res = UserVol <$> pure idUsuari <*> pure currentTime <*> 
+                          userVolOrigenPaís_Res <*> userVolOrigenAeroport_Res <*>
+                          userVolDestíPaís_Res <*> userVolDestíAeroport_Res <*>
+                          userVolDataAnada_Res <*>
+                          userVolNumVolAnada_Res <*> userVolDataTornada_Res <*> userVolNumVolTornada_Res <*> 
+                          userVolNombreDeSeients_Res <*> userVolLíniaAèria_Res <*> userVolNumReserva_Res <*> userVolWebOnVaFerLaReserva_Res <*> userArtPreu_Res <*> userArtMoneda_Res <*>
+                          userArtComentaris_Res <*> pure userVolEstat_Val
+                          
+        let wGrups = UH.massRows [(Just MsgLegendOrigen,[userVolOrigenPaís_View, userVolOrigenAeroport_View]),
+                                  (Just MsgLegendDestí,[userVolDestíPaís_View, userVolDestíAeroport_View]),
+                                  (Just MsgLegendAnada, [userVolDataAnada_View, userVolNumVolAnada_View]),
+                                  (Just MsgLegendTornada, [userVolDataTornada_View, userVolNumVolTornada_View]),
+                                  (Just MsgLegendDetalls, [userVolNombreDeSeients_View, userVolLíniaAèria_View, userVolNumReserva_View, userVolWebOnVaFerLaReserva_View,
+                                                           userArtPreu_View, userArtMoneda_View, userArtComentaris_View])
+                                  ]         
+            
+        let widget = do
+                [whamlet|
+        #{extra}
+        ^{wGrups}
+|]
+        return (userVol_Res, widget)        
+                
+  where
+    positiuField = check validateNombreDeSeients intField
+    validateNombreDeSeients n
+            | n < 1 = Left $ renderMessage master langs MsgUserVol_ErrNombreDeSeientsNoPositiu
+            | otherwise = Right n
+{-            
+    destinacionsInicialsOrigen userVolOrigenPaís_Res =
+            if ésRunForm
+               then case userVolOrigenPaís_Res of
+                         FormSuccess origenPaís -> case UF.destinacionsDelPaís origenPaís of
+                                                     Just d -> d
+                                                     Nothing -> []
+                         _ -> []
+                         
+               else case mbUserVol of
+                                Nothing -> case UF.destinacionsDelPaís defPaís of
+                                                     Just d -> d
+                                                     Nothing -> []
+                                Just userVol -> case UF.destinacionsDelPaís $ userVolOrigenPaís userVol of
+                                                     Just d -> d
+                                                     Nothing -> []
+                                
+    destinacionsInicialsDestí userVolDestíPaís_Res =
+            if ésRunForm
+               then case userVolDestíPaís_Res of
+                         FormSuccess destíPaís -> case UF.destinacionsDelPaís destíPaís of
+                                                     Just d -> d
+                                                     Nothing -> []
+                         _ -> []
+
+               else case mbUserVol of
+                                Nothing -> case UF.destinacionsDelPaís defPaís of
+                                                     Just d -> d
+                                                     Nothing -> []
+                                Just userVol -> case UF.destinacionsDelPaís $ userVolDestíPaís userVol of
+                                                     Just d -> d
+                                                     Nothing -> []
+
+    defPaís = "ES"
+                                                     -}
+                                                     
+    -- comprovaDest :: (RenderMessage master FormMessage) => (Text -> Either FormMessage a)
+    comprovaDest "none" = Left MsgValueRequired
+    comprovaDest txt = Right txt
+
+            
+
+getUserAddFlightR :: Handler RepHtml
+getUserAddFlightR = do
+    req <- getRequest
+    master <- getYesod
+    mbLang <- UF.obtenirIdioma
+    langs <- languages
+    muser <- maybeAuth
+    let Entity userId user = fromJust muser  -- isAuthorized
+    mbUserInfo <- case muser of
+                         Nothing -> return Nothing
+                         Just (Entity userId _) -> do
+                                 mbEnt <- runDB $ getBy (UniqueUserInfoUserId userId)
+                                 return $ fmap entityVal mbEnt
+
+    if MB.isJust muser && MB.isNothing mbUserInfo
+         then do
+                setMessageI MsgErrRequeixPerfilUsuari
+                redirect UserInfoR
+         else do
+                let paísOrigen = (snd . L.head) UP.països
+                    paísDestí = (snd . L.head) UP.països
+                
+                destinacionsInicialsOrigen <- runDB $ UH.obtenirDestinacions $ Just paísOrigen
+                destinacionsInicialsDestí <- runDB $ UH.obtenirDestinacions $ Just paísDestí
+                
+                (tabulatedFormWidget, enctype) <- generateFormPost $ userVolFormCustom master langs userId Nothing
+                                                                                       destinacionsInicialsOrigen destinacionsInicialsDestí
+                mydefaultLayout emptyWidget $ do
+                        setTitleI MsgUserAddFlightTitle
+                        widgetJSDatePick mbLang
+                        toWidgetHead $(juliusFile "templates/uservol-form.julius")
+                        $(widgetFile "tabulated-form-one-col")
+
+postUserAddFlightR :: Handler RepHtml
+postUserAddFlightR = do
+    muser <- maybeAuth
+    master <- getYesod
+    mbLang <- UF.obtenirIdioma
+    langs <- languages
+    diaDAvui <- liftIO $ UF.today ()
+    let Entity userId _user = fromJust muser  -- isAuthorized
+    
+    paísOrigen <- runInputPost $ ireq textField "f2"
+    paísDestí <- runInputPost $ ireq textField "f4"
+    
+    destinacionsInicialsOrigen <- runDB $ UH.obtenirDestinacions $ Just paísOrigen
+    destinacionsInicialsDestí <- runDB $ UH.obtenirDestinacions $ Just paísDestí
+    
+    ((res, tabulatedFormWidget), enctype) <- runFormPost $ userVolFormCustom master langs userId Nothing 
+                                                                             destinacionsInicialsOrigen destinacionsInicialsDestí
+    case res of
+        FormSuccess userVol -> do
+            case comprovaVol diaDAvui userVol of
+               Left errmsg -> do  
+                        setMessageI errmsg
+                        mydefaultLayout emptyWidget $ widgetCorregir mbLang tabulatedFormWidget enctype
+               Right _ -> do
+                        let destMap = appDestsRevMap master
+                        runDB $ do
+                                let artVol = artVolFromUserVol destMap userVol
+                                idArtVol <- insert artVol
+                                let userArt = userArtFromUserVol userVol idArtVol
+                                _ <- insert userArt
+                                return ()
+                        setMessageI MsgUserVol_HasBeenAdded
+                        redirect UserAddFlightR
+
+        _ -> do
+                setMessageI MsgPleaseCorrect
+                mydefaultLayout emptyWidget $ widgetCorregir mbLang tabulatedFormWidget enctype
+  where
+          widgetCorregir mbLang tabulatedFormWidget enctype = do
+                  setTitleI MsgPleaseCorrect
+                  widgetJSDatePick mbLang
+                  toWidgetHead $(juliusFile "templates/uservol-form.julius")
+                  $(widgetFile "tabulated-form-one-col")
+
+comprovaVol :: Day -> UserVol -> Either AppMessage UserVol
+comprovaVol diaDAvui userVol =
+            case () of
+               _ | userVolOrigenAeroport userVol == userVolDestíAeroport userVol -> Left MsgUserVol_ErrOrigenIgualADEstí
+
+                 | userVolDataAnada userVol < diaControl -> Left MsgUserVol_ErrDataAnadaÉsEnElPassat
+
+                 | isJust (userVolDataTornada userVol) && (fromJust $ userVolDataTornada userVol) < userVolDataAnada userVol ->
+                        Left MsgUserVol_ErrDataAnadaÉsAnteriorADataTornada
+
+                 | isJust (userVolDataTornada userVol) && MB.isNothing (userVolNumVolTornada userVol)-> 
+                        Left MsgUserVol_ErrMancaNumVolTornada
+
+                 | otherwise -> Right userVol
+    where
+      diaControl = addDays (-1) diaDAvui      
+
+getUserEditFlightR :: UserArtId -> Handler RepHtml
+getUserEditFlightR artId = do
+    req <- getRequest
+    master <- getYesod
+    mbLang <- UF.obtenirIdioma
+    langs <- languages
+    muser <- maybeAuth
+    let Entity userId user = fromJust muser  -- isAuthorized
+    mbUserArt <- runDB $ get artId
+    case mbUserArt of
+       Nothing -> notFound
+       Just art
+                | userArtTipusArt art /= TipArtVol -> notFound
+                | userArtIdUsuari art /= userId -> notFound
+                | not $ isJust $ userArtIdArtVol art -> notFound
+                | otherwise -> do
+                       let idArtVol = fromJust $ userArtIdArtVol art
+                       mbArtVol <- runDB $ get idArtVol
+                       case mbArtVol of
+                         Nothing -> notFound
+                         Just artVol -> do
+                           let vol = userVolFromUserArt art artVol
+                           
+
+                           destinacionsInicialsOrigen <- runDB $ UH.obtenirDestinacions $ Just $ userVolOrigenPaís vol
+                           destinacionsInicialsDestí <- runDB $ UH.obtenirDestinacions $ Just $ userVolDestíPaís vol
+                
+                           (tabulatedFormWidget, enctype) <- generateFormPost $ userVolFormCustom master langs userId (Just vol) 
+                                                                                     destinacionsInicialsOrigen destinacionsInicialsDestí
+                           mydefaultLayout emptyWidget $ do
+                             setTitleI MsgUserEditFlightTitle
+                             widgetJSDatePick mbLang
+                             toWidgetHead $(juliusFile "templates/uservol-form.julius")
+                             $(widgetFile "tabulated-form-with-delete-art")
+
+postUserEditFlightR :: UserArtId -> Handler RepHtml
+postUserEditFlightR artId = do
+    req <- getRequest
+    master <- getYesod
+    mbLang <- UF.obtenirIdioma
+    langs <- languages   -- param. per al userVolForm
+    diaDAvui <- liftIO $ UF.today ()
+    muser <- maybeAuth
+    let Entity userId user = fromJust muser  -- isAuthorized
+    mbUserArt <- runDB $ get artId
+    case mbUserArt of
+       Nothing -> notFound
+       Just art
+                | userArtTipusArt art /= TipArtVol -> notFound
+                | userArtIdUsuari art /= userId -> notFound
+                | not $ isJust $ userArtIdArtVol art -> notFound
+                | otherwise -> do
+                        let idArtVol = fromJust $ userArtIdArtVol art
+                        mbDelete <- runInputPost $ iopt textField "delete"
+                        case mbDelete of
+                           Just _ -> do
+                                runDB $ userArtUpdEstat artId EstArt_Anuŀlat
+                                setMessageI MsgUserVol_HasBeenDeleted
+                                redirect $ UserVisitOwnFlightR artId
+                                
+                           _ -> do
+                              paísOrigen <- runInputPost $ ireq textField "f2"
+                              paísDestí <- runInputPost $ ireq textField "f4"
+
+                              destinacionsInicialsOrigen <- runDB $ UH.obtenirDestinacions $ Just paísOrigen
+                              destinacionsInicialsDestí <- runDB $ UH.obtenirDestinacions $ Just paísDestí
+
+                              ((res, tabulatedFormWidget), enctype) <- runFormPost $ userVolFormCustom master langs userId Nothing 
+                                                                                        destinacionsInicialsOrigen destinacionsInicialsDestí
+                              case res of
+                                FormSuccess userVol -> do
+                                    case comprovaVol diaDAvui userVol of
+                                        Left errmsg -> do
+                                                setMessageI errmsg
+                                                mydefaultLayout emptyWidget $ widgetCorregir mbLang tabulatedFormWidget enctype
+                                        Right _ -> do
+                                                _ <- runDB $ userArtUpd artId userVol
+                                                let destMap = appDestsRevMap master
+                                                _ <- runDB $ artVolUpd destMap idArtVol userVol
+                                                setMessageI MsgUserVol_HasBeenUpdated
+                                                redirect $ UserEditFlightR artId
+
+                                _ -> do
+                                        setMessageI MsgPleaseCorrect
+                                        mydefaultLayout emptyWidget $ widgetCorregir mbLang tabulatedFormWidget enctype
+  where
+          widgetCorregir mbLang tabulatedFormWidget enctype = do
+                  setTitleI MsgPleaseCorrect
+                  widgetJSDatePick mbLang
+                  toWidgetHead $(juliusFile "templates/uservol-form.julius")
+                  $(widgetFile "tabulated-form-with-delete-art")
+
+                  
+        

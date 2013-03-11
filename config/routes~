@@ -1,0 +1,39 @@
+/static StaticR Static getStatic
+/auth   AuthR   Auth   getAuth
+
+/favicon.ico FaviconR GET
+/robots.txt RobotsR GET
+
+/        HomeR     GET
+/profile UserInfoR GET POST
+
+/add-flight UserAddFlightR GET POST
+/edit-flight/#UserArtId UserEditFlightR GET POST
+/visit-own-flight/#UserArtId UserVisitOwnFlightR GET
+
+/visit-flight/#UserArtId UserVisitFlightR GET
+/flight-send-interest/#UserArtId UserSendInterestR GET POST
+
+/user-get-mail/#Int MailR GET
+/user-view-mail/#UserMsgId MailViewR GET
+
+/my-flights/#Int ElsMeusVolsR GET
+/all-flights/#Int TotsElsVolsR GET
+
+/find-flights CercarVolsR GET POST
+/find-flights-res/#Text/#Text/#Integer/#Int CercarVolsResultR GET
+
+/admin-find-users CercarUsrsR GET POST
+/admin-find-users-res/#Text/#Text/#Text/#Text/#Text/#Int CercarUsrsResultR GET
+
+/admin-view-user/#UserId UserInfoAdminVisitarR GET POST
+/admin-view-user-arts/#UserId/#Int UserInfoAdminLlistarArticlesR GET
+/admin-visit-flight/#UserArtId AdminVisitFlightR GET
+
+/admin-globals GlobalsR GET POST
+/credits CreditsR GET
+
+/set-lang SetLangR GET
+
+/get-airports/#Text HXR_AeroportsR GET
+/set-paisos PaisosR GET

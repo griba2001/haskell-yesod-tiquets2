@@ -1,0 +1,12 @@
+<!-- mòdul de vols recents (llistat compacte) destMap -->
+<p> _{MsgRecentVols}:
+$if not $ null $ volsRecents
+  <ul>
+    $forall (volId, vol) <- volsRecents
+       <li> #{UF.nomDest destMap $ userVolOrigenAeroport vol}<br/>
+            \ _{MsgListFlightsTo}  #{UF.nomDest destMap $ userVolDestíAeroport vol}<br/>
+            \ #{UF.formataDayCurt mbLang $ userVolDataAnada vol} #
+            $if isJust muser
+               <a href=@{UserVisitFlightR volId}> _{MsgDetalls}
+
+
