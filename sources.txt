@@ -1,2 +1,2 @@
 .
-./../libs/shakespeare-lightmarkup
+./gitlibs/shakespeare-lightmarkup

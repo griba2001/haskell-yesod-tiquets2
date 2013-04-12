@@ -1,0 +1,69 @@
+ABC Albecete Los Llanos Airport
+ACE Lanzarote
+AGP  
+ALC  
+BCN Aeropuerto El Prat de Barcelona
+BIO Sondica
+BJZ Talavera La Real
+EAS Hondarribia
+ENM Beas de Segura
+FUE Puerto del Rosario
+GMZ La Gomera
+GRO Girona-Costa Brava
+GRX  
+IBZ  
+LCG  
+LEI  
+MJV San Javier
+LPA Gran Canaria
+MAD Barajas
+TOJ Torrejon Air Force Base
+MAH  
+MAH San Luis
+MLN  
+ODB San Jeronimo
+OVD  
+PMI Son San Juan (Mil/Civ)
+PNA Pamplona-Noain
+QCI  
+QFU  
+QGN Reus
+QIJ  
+QIU  
+QJR  
+QLM  
+LEU Seo de Urgel Airport
+QLQ  
+QLY  
+QRL  
+QSA  
+QUQ  
+QUZ  
+QWT  
+QWW  
+QWX  
+REQ Valencia
+REU Reus Airbase
+RJL Agoncillo
+SCQ Santiago Airport
+SDR Santander Airport
+SLM Matacan
+SPC  
+SPO  
+SVQ San Pablo
+OZP Moron Air Base
+TCI Metropolitan Area
+TFN Los Rodeos
+TFS Reina Sofia
+UTL  
+VDE Hierro
+VGO  
+VIT Foronda
+VLC Manises
+VLL Villanubla
+WNT  
+XRY La Parra
+YDY  
+ZAZ  
+ZRC City Bus Station
+ZXA Rota Aero-Naval Station

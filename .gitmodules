@@ -1,0 +1,3 @@
+[submodule "gitlibs/shakespeare-lightmarkup"]
+	path = gitlibs/shakespeare-lightmarkup
+	url = git://github.com/griba2001/haskell-yesod-shakespeare-lightmarkup.git
