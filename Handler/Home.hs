@@ -2,7 +2,7 @@
 module Handler.Home where
 
 import Import
-import qualified "mdqq" Text.Shakespeare.LightMarkup as LM
+import qualified "shakespeare-lightmarkup" Text.Shakespeare.LightMarkup as LM
 import qualified Handler.UtilHandlers as UH
 import qualified Handler.UserVolList as UV
 import qualified Util.UtilForms as UF

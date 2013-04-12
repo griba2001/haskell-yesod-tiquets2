@@ -108,7 +108,7 @@ library
                  , monad-logger
                  , esqueleto
                  , old-locale
-                 , mdqq                          >= 0.6
+                 , shakespeare-lightmarkup       >= 0.6
                  , email-validate                >=0.2.6        && <0.3
                  , xmlgen
                  , blaze-builder
